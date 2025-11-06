@@ -48,8 +48,6 @@ for rc = linspace(rc_min, rc_max, nr)
         f([1 2], :, cnt) = frames([1 2], :);
         f(3:6, :, cnt) = sc * frames(3:6,:);
     end
-    
-    
 
     if strcmp(des,'sift') == 1
         dim = 128;
@@ -60,14 +58,13 @@ for rc = linspace(rc_min, rc_max, nr)
     end
     D = zeros(dim,nf,ns);
     
-    
-    
     for i = 1:ns
         [~,d] = extract(im,des,f(:,:,i));
         D(:,:,i) = d;
     end
     
     D = permute(D,[1,3,2]);
+
     % ------------------------------interpolation -----------------------------------
     if isInter == 1
         for in = 1:size(D,2)-1
@@ -76,12 +73,11 @@ for rc = linspace(rc_min, rc_max, nr)
         end
     end
     % ------------------------------interpolation -----------------------------------
+    
     d_out = [];
     for i_f = 1:nf
-        
-        
-        
         accVec = zeros(dim,1);
+
         %% 1st stage thresholding
         for c = 1:ns-1
             temp = D(:,c,i_f);
@@ -92,7 +88,6 @@ for rc = linspace(rc_min, rc_max, nr)
 
         accVec = double(accVec);
         d_out = [d_out,accVec];
-        
         
     end
     
@@ -105,10 +100,6 @@ d_1m2m = [];
 for i_2m = 1:num2m
     d_1m2m = [d_1m2m;double(d_1m>floor(num1m*nchoosek(opt.ns,2)/(num2m+1)*i_2m))];
 end
-
-
-
-
 
 function [ outVec ] = mThresM( inMat,num_q,dim )
 %% Determine local multi-thresholds and return the voting vector

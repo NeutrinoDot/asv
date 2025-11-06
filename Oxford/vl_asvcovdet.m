@@ -36,8 +36,6 @@ for rc = linspace(rc_min, rc_max, nr)
     end
     
     
-    
-    
     ns = opt.ns;
     sc_min = opt.sc_min;
     sc_max = opt.sc_max;
@@ -51,8 +49,6 @@ for rc = linspace(rc_min, rc_max, nr)
         f(3:6, :, cnt) = sc * frames(3:6,:);
     end
     
-    
-    
     if strcmp(des,'sift') == 1
         dim = 128;
     elseif strcmp(des,'liop') == 1
@@ -61,6 +57,7 @@ for rc = linspace(rc_min, rc_max, nr)
         dim = 1681;
     end
     D = zeros(dim,nf,ns);
+
     for i = 1:ns
         [~,d] = extract(im,des,f(:,:,i));
         D(:,:,i) = d;
@@ -82,23 +79,17 @@ for rc = linspace(rc_min, rc_max, nr)
         accVec = zeros(dim,1);
         
         for c = 1:size(D,2)-1
-            
             temp = D(:,c,i_f);
-            
             M = bsxfun(@minus,D(:,(c+1):end,i_f),temp);
             M = abs(M);
             %% 1st stage median thresholding
             m = median(M,1);
             
             for t = 1:size(m,2)
-                
                 accVec = accVec + (M(:,t) <= m(t));
-                
             end
             
         end
-        
-        
         
         accVec = double(accVec);
         d_out = [d_out,accVec];
@@ -106,8 +97,5 @@ for rc = linspace(rc_min, rc_max, nr)
     
     D_out = [D_out;d_out];
 end
-
-
-
 
 end
