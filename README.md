@@ -2,7 +2,7 @@
 
 ## SIFT Detector Source File Location
 
-The SIFT (Scale-Invariant Feature Transform) detector source file is located in the OpenCV library's `modules/features2d/src/` directory in the `sift.dispatch.cpp` file. In the OpenCV source tree, you can find it at:
+The SIFT detector source file is here:
 
 ```
 opencv-4.12.0/modules/features2d/src/sift.dispatch.cpp
@@ -39,9 +39,8 @@ sudo make install
 
 ### Prerequisites
 
-1. Install [Visual Studio](https://visualstudio.microsoft.com/) (2019 or later) with C++ development tools
-2. Install [CMake](https://cmake.org/download/) (3.15 or later)
-3. Download OpenCV source code
+1. Install Visual Studio 2019
+2. Install CMake
 
 ### Build Steps
 
@@ -57,7 +56,7 @@ cmake -G "Visual Studio 16 2019" -A x64 -D CMAKE_BUILD_TYPE=RELEASE ..
 # Build using CMake
 cmake --build . --config Release
 
-# Install (optional, requires admin privileges)
+# Install on the computer (optional)
 cmake --build . --config Release --target INSTALL
 ```
 
