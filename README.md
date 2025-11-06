@@ -26,7 +26,7 @@ cd opencv-4.12.0
 mkdir build && cd build
 
 # Configure with CMake
-cmake -D CMAKE_BUILD_TYPE=RELEASE ..
+cmake -D CMAKE_BUILD_TYPE=RELEASE -D CMAKE_INSTALL_PREFIX=/usr/local -D OPENCV_ENABLE_NONFREE=ON ..
 
 # Build (use -j flag for parallel compilation)
 make -j$(sysctl -n hw.ncpu)
