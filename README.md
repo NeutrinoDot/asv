@@ -1,6 +1,6 @@
 # asv-sift
 
-## ASV Detector Source File Location
+## Original Paper's ASV Detector Source File Location
 
 The ASV detector source file is here:
 
@@ -9,12 +9,18 @@ Oxford/vl_asvcovdet.m
 Oxford/vl_asv1m2mcovdet.m
 ```
 
-## SIFT Detector Source File Location
+## ASV Source File Location
 
-The SIFT detector source file is here:
+The ASV header file is here:
 
 ```
-opencv-4.12.0/modules/features2d/src/sift.dispatch.cpp
+opencv-4.12.0/modules/features2d/include/opencv2/features2d.hpp
+```
+
+The ASV source file is here:
+
+```
+opencv-4.12.0/modules/features2d/src/asv.cpp
 ```
 
 ## Building OpenCV on macOS

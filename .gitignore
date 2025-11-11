@@ -4,3 +4,5 @@
 # Build directories
 build/
 **/build/
+
+temp/

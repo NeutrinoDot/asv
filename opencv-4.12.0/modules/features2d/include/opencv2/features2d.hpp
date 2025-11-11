@@ -347,6 +347,54 @@ public:
 typedef SIFT SiftFeatureDetector;
 typedef SIFT SiftDescriptorExtractor;
 
+/** @brief Class for computing descriptors using Accumulated Stability Voting 
+ (ASV) algorithm based on: Yang, T.-Y., Lin, Y.-Y. & Chuang, Y.-Y., 
+ "Accumulated Stability Voting: A Robust Descriptor from Descriptors of 
+ Multiple Scales," CVPR 2016.
+
+ASV calculates descriptors at multiple scales and uses stability voting to 
+create more better descriptors. The ASV descriptor can work with any Feature2D 
+detector (SIFT, ORB, BRISK, ...)
+*/
+class CV_EXPORTS_W ASV : public Feature2D
+{
+public:
+    /** Constructor
+    @param detector The feature detector used by ASV.
+    @param nScales Number of scales to sample for each keypoint.
+    @param scaleStep Step size between scales.
+    @param voteThreshold Threshold for stability voting.
+    */
+    ASV(const Ptr<Feature2D>& detector,
+        int nScales,
+        double scaleStep,
+        double voteThreshold);
+
+    /** updates current object */
+    CV_WRAP static Ptr<ASV> create(const Ptr<Feature2D>& detector,
+                                   int nScales,
+                                   double scaleStep,
+                                   double voteThreshold);
+
+    /** Computes ASV descriptors
+     */
+    virtual void compute(InputArray image,
+                        std::vector<KeyPoint>& keypoints,
+                        OutputArray descriptors) CV_OVERRIDE;
+
+    CV_WRAP void setNScales(int _nScales) { nScales = _nScales; }
+    CV_WRAP void setScaleStep(double _scaleStep) { scaleStep = _scaleStep; }
+    CV_WRAP void setVotingThreshold(double _voteThreshold) { voteThreshold = _voteThreshold; }
+    CV_WRAP void setDetector(const Ptr<Feature2D>& _detector) { detector = _detector; }
+
+protected:
+    Ptr<Feature2D> detector;
+    int nScales;
+    double scaleStep;
+    double voteThreshold;
+    
+    // add helper methods here
+};
 
 /** @brief Class implementing the BRISK keypoint detector and descriptor extractor, described in @cite LCS11 .
  */
