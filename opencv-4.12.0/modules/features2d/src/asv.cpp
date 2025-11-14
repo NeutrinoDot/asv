@@ -19,26 +19,31 @@ namespace cv {
     ASV::ASV(const Ptr<Feature2D>& _detector,
             int _nScales,
             double _scaleStep,
-            double _voteThreshold)
+            double _nThreshold1,
+            double _nThreshold2,
+            bool _isInter)
         : detector(_detector),
         nScales(_nScales),
         scaleStep(_scaleStep),
-        voteThreshold(_voteThreshold)
+        nThreshold1(_nThreshold1),
+        nThreshold2(_nThreshold2),
+        isInter(_isInter)
     {
     }
 
     Ptr<ASV> ASV::create(const Ptr<Feature2D>& detector,
                         int nScales,
                         double scaleStep,
-                        double votingThreshold)
+                        double nThreshold1,
+                        double nThreshold2,
+                        bool isInter)
     {
-        return makePtr<ASV>(detector, nScales, scaleStep, votingThreshold);
+        return makePtr<ASV>(detector, nScales, scaleStep, nThreshold1, nThreshold2, isInter);
     }
 
     // compute descriptors
-    void ASV::compute(InputArray _image,
-                    std::vector<KeyPoint>& keypoints,
-                    OutputArray _descriptors)
+    void ASV::compute(InputArray _image, std::vector<KeyPoint>& keypoints,
+                    OutputArray _descriptors, OutputArray _binaryDescriptors)
     {
         CV_Assert(!detector.empty());
         
@@ -50,16 +55,37 @@ namespace cv {
             CV_Error( Error::StsBadArg, "No keypoints detected." );
         }
 
-        // Store descriptors at each scale for each keypoint
+        // store multiscale descriptors as vector [keypoint][scale][Mat]
         int nKeypoints = (int)keypoints.size();
         std::vector<std::vector<Mat>> multiScaleDescriptors(nKeypoints);
         
-        // Extract descriptors at multiple scales around each keypoint
+        // extract descriptors at multiple scales around each keypoint
         for (int scaleIdx = 0; scaleIdx < nScales; scaleIdx++)
         {
-            // get and store descriptors at a specific scale
+            // create scaled keypoints copy
+            double scaleFactor = std::pow(scaleStep, scaleIdx - nScales / 2.0);            
+            std::vector<KeyPoint> scaledKeypoints = keypoints; // deep copy keypoints
+            for (size_t i = 0; i < nKeypoints; i++)
+            {
+                scaledKeypoints[i].size *= static_cast<float>(scaleFactor);
+            }
+
+            // get descriptors at this scale
+            Mat scaledDescriptor; // [keypoint][descriptor]
+            detector->compute(image, scaledKeypoints, scaledDescriptor);
+
+            if (nKeypoints > scaledDescriptor.rows) {
+                std::cerr << "nKeypoints > scaledDescriptor.rows" << std::endl;
+                exit(1);
+            }
+
+            // store descriptors for each keypoint
+            for (int i = 0; i < nKeypoints; i++)
+            {                
+                multiScaleDescriptors[i].push_back(scaledDescriptor.row(i).clone());
+            }
         }
         
-        // Apply stability voting
+        // compute stability voting on multiScaleDescriptors
     }
 }

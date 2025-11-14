@@ -363,36 +363,47 @@ public:
     @param detector The feature detector used by ASV.
     @param nScales Number of scales to sample for each keypoint.
     @param scaleStep Step size between scales.
-    @param voteThreshold Threshold for stability voting.
+    @param nThreshold1 Number of thresholds for each bin for 1st-stage thresholding
+    @param nThreshold2 Number of thresholds for 2nd-stage thresholding
+    @param isInter Flag to interpolate features between scales
     */
     ASV(const Ptr<Feature2D>& detector,
         int nScales,
         double scaleStep,
-        double voteThreshold);
+        double nThreshold1,
+        double nThreshold2,
+        bool isInter);
 
     /** updates current object */
     CV_WRAP static Ptr<ASV> create(const Ptr<Feature2D>& detector,
                                    int nScales,
                                    double scaleStep,
-                                   double voteThreshold);
+                                   double nThreshold1,
+                                   double nThreshold2,
+                                   bool isInter);
 
     /** Computes ASV descriptors
      */
     virtual void compute(InputArray image,
                         std::vector<KeyPoint>& keypoints,
-                        OutputArray descriptors) CV_OVERRIDE;
+                        OutputArray realDescriptors,  
+                        OutputArray binaryDescriptors);
 
     CV_WRAP void setNScales(int _nScales) { nScales = _nScales; }
     CV_WRAP void setScaleStep(double _scaleStep) { scaleStep = _scaleStep; }
-    CV_WRAP void setVotingThreshold(double _voteThreshold) { voteThreshold = _voteThreshold; }
+    CV_WRAP void setVotingThreshold1(double _nThreshold1) { nThreshold1 = _nThreshold1; }
+    CV_WRAP void setVotingThreshold2(double _nThreshold2) { nThreshold2 = _nThreshold2; }
+    CV_WRAP void setIsInter(bool _isInter) { isInter = _isInter; }
     CV_WRAP void setDetector(const Ptr<Feature2D>& _detector) { detector = _detector; }
 
 protected:
     Ptr<Feature2D> detector;
     int nScales;
     double scaleStep;
-    double voteThreshold;
-    
+    double nThreshold1;
+    double nThreshold2;
+    bool isInter;
+
     // add helper methods here
 };
 
