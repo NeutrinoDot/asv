@@ -35,16 +35,17 @@ brew install cmake
 
 ```bash
 # Clone OpenCV repository
-cd opencv-opencv-cbee684
+cd opencv-4.12.0
 mkdir build && cd build
 
 # Configure with CMake
 cmake -D CMAKE_BUILD_TYPE=RELEASE -D CMAKE_INSTALL_PREFIX=/usr/local -D OPENCV_ENABLE_NONFREE=ON ..
 
 # Build (use -j flag for parallel compilation)
-make -j4
+make -j8
 
 # Install on the computer (optional)
+# Make sure to remove existing OpenCV before installation
 sudo make install
 ```
 

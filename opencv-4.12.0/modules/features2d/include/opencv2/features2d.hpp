@@ -347,6 +347,7 @@ public:
 typedef SIFT SiftFeatureDetector;
 typedef SIFT SiftDescriptorExtractor;
 
+
 /** @brief Class for computing descriptors using Accumulated Stability Voting 
  (ASV) algorithm based on: Yang, T.-Y., Lin, Y.-Y. & Chuang, Y.-Y., 
  "Accumulated Stability Voting: A Robust Descriptor from Descriptors of 
@@ -406,6 +407,7 @@ protected:
 
     // add helper methods here
 };
+
 
 /** @brief Class implementing the BRISK keypoint detector and descriptor extractor, described in @cite LCS11 .
  */
