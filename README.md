@@ -28,23 +28,21 @@ opencv-4.12.0/modules/features2d/src/asv.cpp
 ### Prerequisites
 
 ```bash
-brew install cmake pkg-config
-brew install jpeg libpng libtiff openexr
-brew install eigen tbb
+brew install cmake
 ```
 
 ### Build Steps
 
 ```bash
 # Clone OpenCV repository
-cd opencv-4.12.0
+cd opencv-opencv-cbee684
 mkdir build && cd build
 
 # Configure with CMake
 cmake -D CMAKE_BUILD_TYPE=RELEASE -D CMAKE_INSTALL_PREFIX=/usr/local -D OPENCV_ENABLE_NONFREE=ON ..
 
 # Build (use -j flag for parallel compilation)
-make -j$(sysctl -n hw.ncpu)
+make -j4
 
 # Install on the computer (optional)
 sudo make install
