@@ -12,7 +12,7 @@ detector (SIFT, ORB, BRISK, ...)
 #include <numeric>
 
 #include "opencv2/features2d.hpp"
-// #include "precomp.hpp"
+#include "precomp.hpp"
 
 namespace cv {
 
@@ -25,33 +25,43 @@ ASV::ASV(const int detectorType = 0, const int _nScales,
       nThreshold1(_nThreshold1),
       nThreshold2(_nThreshold2),
       isInter(_isInter) {
-  detector = SIFT::create(contrastThreshold = 0,
-                          edgeThreshold = 0);  // default detector
+  // default detector
+  detector = SIFT::create(contrastThreshold = 0, edgeThreshold = 0);
+  descriptorSize = 128;  // default SIFT size
+  descriptorType = CV_32F;
 }
 
 Ptr<ASV> ASV::create(const int detectorType, int nScales, double scaleStep,
                      double nThreshold1, double nThreshold2, bool isInter) {
-  return makePtr<ASV>(nScales, scaleStep, nThreshold1, nThreshold2, isInter,
-                      detectorType);
+  return makePtr<ASV>(detectorType, nScales, scaleStep, nThreshold1,
+                      nThreshold2, isInter);
 }
 
 // compute descriptors
-void ASV::compute(InputArray _image, std::vector<KeyPoint>& keypoints,
-                  OutputArray _descriptors, OutputArray _binaryDescriptors) {
+void ASV::compute(const InputArray _image,
+                  const std::vector<KeyPoint>& keypoints,
+                  OutputArray _descriptor, OutputArray _binaryDescriptors) {
   CV_Assert(!detector.empty());
 
   Mat image = _image.getMat();
 
   if (keypoints.empty()) {
-    _descriptors.release();
+    _descriptor.release();
+    _binaryDescriptors.release();
     CV_Error(Error::StsBadArg, "No keypoints detected.");
   }
 
-  // store multiscale descriptors as vector [keypoint][scale][Mat]
+  // extract an array of descriptors at multiple scales per keypoint
   std::vector<std::vector<Mat>> multiScaleDescriptors;
-  extractMultiScaleDescriptors(image, keypoints, multiScaleDescriptors, );
+  extractMultiScaleDescriptors(image, keypoints, multiScaleDescriptors);
 
   // compute stability voting on multiScaleDescriptors
+  std::vector<Mat> realDescriptors;
+  computeRealASV(multiScaleDescriptors, realDescriptors);
+
+  // compute binary descriptors from real-valued descriptors
+  std::vector<Mat> binaryDescriptors;
+  computeBinaryASV(realDescriptors, binaryDescriptors);
 }
 
 // extract descriptors at multiple scales around each keypoint
@@ -96,4 +106,87 @@ void ASV::extractMultiScaleDescriptors(
     multiScaleDescriptors[i] = std::move(scaledDescriptors);
   }
 }
+
+void ASV::computeRealASV(
+    const std::vector<std::vector<Mat>>& multiScaleDescriptors,
+    std::vector<Mat>& realDescriptors) {
+  if (multiScaleDescriptors.empty()) {
+    realDescriptors.release();
+    return;
+  }
+
+  int nKeypoints = (int)multiScaleDescriptors.size();
+
+  // Process each keypoint
+  for (int i = 0; i < nKeypoints; i++) {
+    const std::vector<Mat>& scaleDescs = multiScaleDescriptors[i];
+
+    // Skip invalid keypoints
+    if (scaleDescs.empty()) {
+      continue;
+    }
+
+    // Compute stability votes for each descriptor dimension
+    Mat featureASV = Mat::zeros(1, descriptorSize, CV_32F);
+
+    // Calculate stability votes between all unique scale pairs
+    for (size_t s1 = 0; s1 < nScales; s1++) {
+      for (size_t s2 = s1 + 1; s2 < nScales; s2++) {
+        computeStabilityVote(scaleDescs[s1], scaleDescs[s2], featureASV);
+      }
+    }
+
+    // Copy to output
+    finalDesc.copyTo(descriptors.row(outputIdx));
+    outputIdx++;
+  }
+
+  descriptors.copyTo(realDescriptors);
+}
+
+void ASV::computeFeatureASV(const std::vector<Mat>& keypointDescriptors,
+                            Mat& votes) {
+  // Skip invalid keypoints
+  if (keypointDescriptors.empty()) {
+    return;
+  }
+
+  // Calculate stability votes between all unique scale pairs
+  for (size_t s1 = 0; s1 < nScales; s1++) {
+    for (size_t s2 = s1 + 1; s2 < nScales; s2++) {
+      computeStabilityVote(keypointDescriptors[s1], keypointDescriptors[s2],
+                           votes);
+    }
+  }
+}
+
+// Calculate stability votes between two descriptors
+void ASV::computeStabilityVote(const Mat& desc1, const Mat& desc2, Mat& votes) {
+  CV_Assert(desc1.size() == desc2.size() && desc1.type() == desc2.type());
+
+  Mat diff = Mat::zeros(descriptorSize, descriptorType);
+  for (int i = 0; i < descriptorSize; i++) {
+    diff.at<float>(i) =
+        std::abs(desc1.at<float>(i)) - std::abs(desc2.at<float>(i));
+  }
+
+  // Calculate the median of the values in diff
+  Mat diffSorted;
+  cv::sort(diff, diffSorted, cv::SORT_EVERY_COLUMN + cv::SORT_ASCENDING);
+  float threshold = diffSorted.at<float>(descriptorSize / 2);
+
+  // Accumulate votes based on threshold
+  for (int i = 0; i < descriptorSize; i++) {
+    if (diff.at<float>(i) < threshold) {
+      votes.at<float>(i) += 1.0f;
+    }
+  }
+}
+
+// Convert real-valued descriptors to binary descriptor
+void ASV::computeBinaryASV(const std::vector<Mat>& realDescriptors,
+                           std::vector<Mat>& binaryDescriptors) {
+  // TODO: Implement binary descriptor conversion
+}
+
 }  // namespace cv

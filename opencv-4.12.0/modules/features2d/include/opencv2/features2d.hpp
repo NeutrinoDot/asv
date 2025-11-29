@@ -421,7 +421,8 @@ class CV_EXPORTS_W ASV : public Feature2D {
 
   /** Computes ASV descriptors
    */
-  virtual void compute(InputArray image, std::vector<KeyPoint>& keypoints,
+  virtual void compute(const InputArray image,
+                       const std::vector<KeyPoint>& keypoints,
                        OutputArray realDescriptors,
                        OutputArray binaryDescriptors);
 
@@ -445,11 +446,29 @@ class CV_EXPORTS_W ASV : public Feature2D {
   double nThreshold1;
   double nThreshold2;
   bool isInter;
+  int descriptorSize;
+  int descriptorType;
 
-  // add helper methods here
-  void extractMultiScaleDescriptors(const Mat& image,
-                                    const std::vector<KeyPoint>& keypoints,
-                                    std::vector<Mat>& multiScaleDescriptors);
+  // extract an array of descriptors at multiple scales per keypoint
+  void extractMultiScaleDescriptors(
+      const Mat& image, const std::vector<KeyPoint>& keypoints,
+      std::vector<std::vector<Mat>>& multiScaleDescriptors);
+
+  // perform stability voting given multi-scale descriptors
+  void computeRealASV(
+      const std::vector<std::vector<Mat>>& multiScaleDescriptors,
+      std::vector<Mat>& realDescriptors);
+
+  // calculate real stability vote of a multi-scale feature descriptor
+  void computeFeatureASV(const std::vector<Mat>& keypointDescriptors,
+                         Mat& votes);
+
+  // calculate stability votes between two descriptors
+  void computeStabilityVote(const Mat& desc1, const Mat& desc2, Mat& votes);
+
+  // Convert real-valued descriptors to binary descriptor
+  void computeBinaryASV(const std::vector<Mat>& realDescriptors,
+                        std::vector<Mat>& binaryDescriptors);
 };
 
 /** @brief Class implementing the BRISK keypoint detector and descriptor
