@@ -8,11 +8,11 @@ create more better descriptors. The ASV descriptor can work with any Feature2D
 detector (SIFT, ORB, BRISK, ...)
 */
 
+#include "asv.h"
+
 #include <iostream>
 #include <numeric>
-
-#include "opencv2/features2d.hpp"
-#include "precomp.hpp"
+#include <opencv2/features2d.hpp>
 
 namespace cv {
 
@@ -110,12 +110,14 @@ void ASV::extractMultiScaleDescriptors(
 void ASV::computeRealASV(
     const std::vector<std::vector<Mat>>& multiScaleDescriptors,
     std::vector<Mat>& realDescriptors) {
+  // Check for empty input
   if (multiScaleDescriptors.empty()) {
-    realDescriptors.release();
     return;
   }
 
   int nKeypoints = (int)multiScaleDescriptors.size();
+  realDescriptors.clear();
+  realDescriptors.resize(nKeypoints);
 
   // Process each keypoint
   for (int i = 0; i < nKeypoints; i++) {
@@ -137,11 +139,8 @@ void ASV::computeRealASV(
     }
 
     // Copy to output
-    finalDesc.copyTo(descriptors.row(outputIdx));
-    outputIdx++;
+    realDescriptors[i] = std::move(featureASV);
   }
-
-  descriptors.copyTo(realDescriptors);
 }
 
 // calculate real stability vote of a multi-scale feature descriptor
@@ -164,8 +163,7 @@ void ASV::computeFeatureASV(const std::vector<Mat>& keypointDescriptors,
 // Calculate stability votes between two descriptors
 void ASV::computeStabilityVote(const Mat& desc1, const Mat& desc2, Mat& votes) {
   CV_Assert(desc1.size() == desc2.size() && desc1.type() == desc2.type());
-
-  Mat diff = Mat::zeros(descriptorSize, descriptorType);
+  Mat diff = Mat::zeros(1, descriptorSize, descriptorType);
   for (int i = 0; i < descriptorSize; i++) {
     diff.at<float>(i) =
         std::abs(desc1.at<float>(i)) - std::abs(desc2.at<float>(i));
