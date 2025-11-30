@@ -4,9 +4,9 @@
 # macOS system files
 .DS_Store
 
-# Build directories
+# Build
 build/
 **/build/
+*/CMakeLists.txt
 
 temp/
-opencv-4.12.0/platforms/
