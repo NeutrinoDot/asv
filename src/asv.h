@@ -28,12 +28,13 @@ class CV_EXPORTS_W ASV : public Feature2D {
   @param nThreshold2 Number of thresholds for 2nd-stage thresholding
   @param isInter Flag to interpolate features between scales
   */
-  ASV(const int detectorType, const int nScales, const double scaleStep,
-      const double nThreshold1, const double nThreshold2, const bool isInter);
+  ASV(const int detectorType, const int nScales, const float scale_min,
+      const float scale_max, const double scaleStep, const double nThreshold1,
+      const double nThreshold2, const bool isInter);
 
   /** updates current object */
   CV_WRAP static Ptr<ASV> create(const int detectorType, const int nScales,
-                                 const double scaleStep,
+                                 const float scale_min, const float scale_max,
                                  const double nThreshold1,
                                  const double nThreshold2, const bool isInter);
 
@@ -44,23 +45,10 @@ class CV_EXPORTS_W ASV : public Feature2D {
                        OutputArray realDescriptors,
                        OutputArray binaryDescriptors);
 
-  CV_WRAP void setNScales(int _nScales) { nScales = _nScales; }
-  CV_WRAP void setScaleStep(double _scaleStep) { scaleStep = _scaleStep; }
-  CV_WRAP void setVotingThreshold1(double _nThreshold1) {
-    nThreshold1 = _nThreshold1;
-  }
-  CV_WRAP void setVotingThreshold2(double _nThreshold2) {
-    nThreshold2 = _nThreshold2;
-  }
-  CV_WRAP void setIsInter(bool _isInter) { isInter = _isInter; }
-  CV_WRAP void setDetector(const Ptr<Feature2D>& _detector) {
-    detector = _detector;
-  }
-
  protected:
   Ptr<Feature2D> detector;
   int nScales;
-  double scaleStep;
+  std::vector<float> scaleFactors;
   double nThreshold1;
   double nThreshold2;
   bool isInter;
@@ -87,6 +75,8 @@ class CV_EXPORTS_W ASV : public Feature2D {
   // Convert real-valued descriptors to binary descriptor
   void computeBinaryASV(const std::vector<Mat>& realDescriptors,
                         std::vector<Mat>& binaryDescriptors);
+
+  void computeScaleFactors(const float scale_min, const float scale_max);
 };
 
 } /* namespace cv */

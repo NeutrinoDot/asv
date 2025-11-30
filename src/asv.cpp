@@ -17,23 +17,27 @@ detector (SIFT, ORB, BRISK, ...)
 namespace cv {
 
 // constructor
-ASV::ASV(const int detectorType = 0, const int _nScales,
-         const double _scaleStep, const double _nThreshold1,
-         const double _nThreshold2, const bool _isInter)
+ASV::ASV(const int detectorType = 0, const int _nScales, const float scale_min,
+         const float scale_max, const double _scaleStep,
+         const double _nThreshold1 = 1, const double _nThreshold2 = 1,
+         const bool _isInter = false)
     : nScales(_nScales),
-      scaleStep(_scaleStep),
       nThreshold1(_nThreshold1),
       nThreshold2(_nThreshold2),
       isInter(_isInter) {
   // default detector
   detector = SIFT::create(0, 3, 0, 0);
-  descriptorSize = 128;  // default SIFT size
+  descriptorSize = 128;
   descriptorType = CV_32F;
+
+  // precompute scale factors
+  computeScaleFactors(scale_min, scale_max);
 }
 
-Ptr<ASV> ASV::create(const int detectorType, int nScales, double scaleStep,
-                     double nThreshold1, double nThreshold2, bool isInter) {
-  return makePtr<ASV>(detectorType, nScales, scaleStep, nThreshold1,
+Ptr<ASV> ASV::create(const int detectorType, int nScales, const float scale_min,
+                     const float scale_max, double nThreshold1,
+                     double nThreshold2, bool isInter) {
+  return makePtr<ASV>(detectorType, nScales, scale_min, scale_max, nThreshold1,
                       nThreshold2, isInter);
 }
 
@@ -82,8 +86,7 @@ void ASV::extractMultiScaleDescriptors(
     // generate scale space and extract descriptors
     for (int scaleIdx = 0; scaleIdx < nScales; scaleIdx++) {
       KeyPoint scaledKeypoint = keypoints[i];  // deep copy keypoint
-      double scaleFactor = std::pow(scaleStep, scaleIdx - nScales / 2.0);
-      scaledKeypoint.size *= static_cast<float>(scaleFactor);
+      scaledKeypoint.size *= scaleFactors[scaleIdx];
 
       Mat descriptor;
       std::vector<KeyPoint> oneKp{scaledKeypoint};  // compute needs a vector
@@ -186,6 +189,14 @@ void ASV::computeStabilityVote(const Mat& desc1, const Mat& desc2, Mat& votes) {
 void ASV::computeBinaryASV(const std::vector<Mat>& realDescriptors,
                            std::vector<Mat>& binaryDescriptors) {
   // TODO: Implement binary descriptor conversion
+}
+
+void ASV::computeScaleFactors(const float scale_min, const float scale_max) {
+  float scaleStep = (scale_max - scale_min) / (nScales - 1);
+  scaleFactors.resize(nScales);
+  for (int i = 0; i < nScales; i++) {
+    scaleFactors[i] = scale_min + i * scaleStep;
+  }
 }
 
 }  // namespace cv
