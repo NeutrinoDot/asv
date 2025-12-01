@@ -17,7 +17,8 @@ ASV calculates descriptors at multiple scales and uses stability voting to
 create more better descriptors. The ASV descriptor can work with any Feature2D
 detector (SIFT, ORB, BRISK, ...)
 */
-class CV_EXPORTS_W ASV : public Feature2D {
+
+class ASV : public Feature2D {
  public:
   /** Constructor
   @param detector The feature detector used by ASV.
@@ -54,6 +55,8 @@ class CV_EXPORTS_W ASV : public Feature2D {
   bool isInter;
   int descriptorSize;
   int descriptorType;
+  std::vector<std::vector<int>> realDescriptors;
+  std::vector<std::vector<int>> binaryDescriptors;
 
   // extract an array of descriptors at multiple scales per keypoint
   void extractMultiScaleDescriptors(
@@ -62,8 +65,7 @@ class CV_EXPORTS_W ASV : public Feature2D {
 
   // perform stability voting given multi-scale descriptors
   void computeRealASV(
-      const std::vector<std::vector<Mat>>& multiScaleDescriptors,
-      std::vector<Mat>& realDescriptors);
+      const std::vector<std::vector<Mat>>& multiScaleDescriptors);
 
   // calculate real stability vote of a multi-scale feature descriptor
   void computeFeatureASV(const std::vector<Mat>& keypointDescriptors,
@@ -73,10 +75,11 @@ class CV_EXPORTS_W ASV : public Feature2D {
   void computeStabilityVote(const Mat& desc1, const Mat& desc2, Mat& votes);
 
   // Convert real-valued descriptors to binary descriptor
-  void computeBinaryASV(const std::vector<Mat>& realDescriptors,
-                        std::vector<Mat>& binaryDescriptors);
+  void computeBinaryASV();
 
   void computeScaleFactors(const float scale_min, const float scale_max);
+
+  int nChooseK(int n, int k);
 };
 
 } /* namespace cv */
