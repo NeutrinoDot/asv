@@ -1,6 +1,5 @@
-#.vscode and vs
+#.vscode
 .vscode/
-.vs/
 
 # macOS system files
 .DS_Store
@@ -11,3 +10,41 @@ build/
 */CMakeLists.txt
 
 temp/
+
+# Visual Studio files
+.vs/
+*.sln
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
+*.vcxitems
+*.vcxitems.filters
+*.user
+*.opensdf
+*.sdf
+*.cachefile
+*.VC.db
+*.opendb
+
+# VS metadata
+cpp.hint
+OpenCV_Debug.props
+
+# Build directories
+x64/
+[Ww]in32/
+[Dd]ebug/
+[Rr]elease/
+[Bb]uild/
+out/
+*.obj
+*.pch
+*.pdb
+*.ilk
+*.log
+
+# Executables / libs
+*.exe
+*.dll
+*.lib
+*.exp
