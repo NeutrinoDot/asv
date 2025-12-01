@@ -30,6 +30,18 @@ ASV::ASV(const int detectorType = 0, const int _nScales, const float scale_min,
   descriptorSize = 128;
   descriptorType = CV_32F;
 
+  // initialize real descriptor dimensions
+  realDescriptors.resize(nThreshold1);
+  for (int i = 0; i < nThreshold1; i++) {
+    realDescriptors[i].resize(descriptorSize, 0);
+  }
+
+  // initialize binary descriptor dimensions
+  binaryDescriptors.resize(nThreshold2);
+  for (int i = 0; i < nThreshold2; i++) {
+    binaryDescriptors[i].resize(descriptorSize, 0);
+  }
+
   // precompute scale factors
   computeScaleFactors(scale_min, scale_max);
 }
@@ -60,12 +72,14 @@ void ASV::compute(const InputArray _image,
   extractMultiScaleDescriptors(image, keypoints, multiScaleDescriptors);
 
   // compute stability voting on multiScaleDescriptors
-  std::vector<Mat> realDescriptors;
-  computeRealASV(multiScaleDescriptors, realDescriptors);
+  computeRealASV(multiScaleDescriptors);
+  Mat tempReal(realDescriptors);
+  tempReal.copyTo(_descriptor);
 
   // compute binary descriptors from real-valued descriptors
-  std::vector<Mat> binaryDescriptors;
-  computeBinaryASV(realDescriptors, binaryDescriptors);
+  computeBinaryASV();
+  Mat tempBinary(binaryDescriptors);
+  tempBinary.copyTo(_binaryDescriptors);
 }
 
 // extract descriptors at multiple scales around each keypoint
@@ -111,8 +125,7 @@ void ASV::extractMultiScaleDescriptors(
 }
 
 void ASV::computeRealASV(
-    const std::vector<std::vector<Mat>>& multiScaleDescriptors,
-    std::vector<Mat>& realDescriptors) {
+    const std::vector<std::vector<Mat>>& multiScaleDescriptors) {
   // Check for empty input
   if (multiScaleDescriptors.empty()) {
     return;
@@ -186,9 +199,17 @@ void ASV::computeStabilityVote(const Mat& desc1, const Mat& desc2, Mat& votes) {
 }
 
 // Convert real-valued descriptors to binary descriptor
-void ASV::computeBinaryASV(const std::vector<Mat>& realDescriptors,
-                           std::vector<Mat>& binaryDescriptors) {
-  // TODO: Implement binary descriptor conversion
+void ASV::computeBinaryASV() {
+  for (int i = 0; i < nThreshold2; i++) {
+    int threshold =
+        nThreshold1 * nChooseK(nScales, 2) / ((nThreshold2 + i) * i);
+
+    for (int j = 0; j < descriptorSize; j++) {
+      if (realDescriptors[i][j] > threshold) {
+        binaryDescriptors[i][j] = 1;
+      }
+    }
+  }
 }
 
 void ASV::computeScaleFactors(const float scale_min, const float scale_max) {
@@ -197,6 +218,17 @@ void ASV::computeScaleFactors(const float scale_min, const float scale_max) {
   for (int i = 0; i < nScales; i++) {
     scaleFactors[i] = scale_min + i * scaleStep;
   }
+}
+
+int ASV::nChooseK(int n, int k) {
+  if (k > n) return 0;
+  if (k == 0 || k == n) return 1;
+  k = std::min(k, n - k);  // Take advantage of symmetry
+  int c = 1;
+  for (int i = 0; i < k; i++) {
+    c *= (n - i) / (i + 1);
+  }
+  return c;
 }
 
 }  // namespace cv

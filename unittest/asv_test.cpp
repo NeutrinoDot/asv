@@ -78,7 +78,7 @@ int main() {
   // detectKeypoints(img2_kp, img2_descriptors, img2, 0, false);
 
   // Create an ASV instance
-  Ptr<ASV> asv = ASV::create(0, 5, 1.414, 1, 1, false);
+  Ptr<ASV> asv = ASV::create(0, 5, 0.7, 1.4, 1, 1, false);
 
   // Set a target position
   Mat realDescriptor;
