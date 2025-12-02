@@ -175,8 +175,8 @@ int main(int /*argc*/, char* /*argv*/[])
 {
   try {
     // 1. Load input images (BGR)
-    Mat img1 = LoadImageOrThrow("unittest/kittens1.jpg");
-    Mat img2 = LoadImageOrThrow("unittest/kittens2.jpg");
+    Mat img1 = LoadImageOrThrow("kittens1.jpg");
+    Mat img2 = LoadImageOrThrow("kittens2.jpg");
 
     cout << "Loaded kittens1.jpg and kittens2.jpg\n";
 
