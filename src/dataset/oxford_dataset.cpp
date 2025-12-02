@@ -7,7 +7,8 @@
 #include <stdexcept>
 
 DatasetLoader::DatasetLoader(const std::vector<ImagePairSpec>& specs)
-  : specs_(specs) {}
+  : specs_(specs) {
+}
 
 // Load homography (3x3) from a text file
 cv::Mat DatasetLoader::loadHographyFormTxt(const std::string& path) const {
@@ -50,7 +51,7 @@ std::vector<ImagePair> DatasetLoader::loadAll() const {
     cv::Mat H_AtoB = loadHographyFormTxt(spec.pathHomography);
 
     ImagePair pair;
-    pair.id     = spec.id;
+    pair.id = spec.id;
     pair.imgA = imgA;
     pair.imgB = imgB;
     pair.H_AtoB = H_AtoB;

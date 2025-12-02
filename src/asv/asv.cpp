@@ -10,7 +10,7 @@ namespace cv {
 
   ASV::ASV(const int detectorType, const int _nScales,
            const float scale_min, const float scale_max,
-           const double _nThreshold1, const double _nThreshold2,
+           const int _nThreshold1, const int _nThreshold2,
            const bool _isInter)
     : nScales(_nScales),
     nThreshold1(_nThreshold1),
@@ -43,7 +43,7 @@ namespace cv {
 
   Ptr<ASV> ASV::create(const int detectorType, const int nScales,
                        const float scale_min, const float scale_max,
-                       const double nThreshold1, const double nThreshold2,
+                       const int nThreshold1, const int nThreshold2,
                        const bool isInter) {
     return makePtr<ASV>(detectorType, nScales, scale_min, scale_max,
                         nThreshold1, nThreshold2, isInter);
@@ -59,8 +59,8 @@ namespace cv {
     if (keypoints.empty() || image.empty()) {
       _descriptor.release();
       _binaryDescriptors.release();
-      std::string msg = "Keypoints empty: " + std::to_string(keypoints.empty()) + 
-                        " || Image empty: " + std::to_string(image.empty());
+      std::string msg = "Keypoints empty: " + std::to_string(keypoints.empty()) +
+        " || Image empty: " + std::to_string(image.empty());
       CV_Error(Error::StsBadArg, msg.c_str());
     }
 
@@ -77,7 +77,7 @@ namespace cv {
 
     // compute stability voting on multiScaleDescriptors
     computeRealASV(multiScaleDescriptors);
-    
+
     Mat realMat = Mat::zeros(N, descriptorSize, CV_32F);
     if (!realDescriptors.empty()) {
       CV_Assert(static_cast<int>(realDescriptors.size()) == N);
@@ -93,7 +93,7 @@ namespace cv {
 
     // compute binary descriptors from real-valued descriptors
     computeBinaryASV();
-    
+
     if (_binaryDescriptors.needed()) {
       if (!binaryDescriptors.empty()) {
         CV_Assert(static_cast<int>(binaryDescriptors.size()) == N);
@@ -254,8 +254,8 @@ namespace cv {
     const int nPairs = nChooseK(nScales, 2);
     if (nPairs <= 0) return;
 
-    const double num1m = nThreshold1;
-    const double num2m = std::max(1.0, nThreshold2);
+    const int num1m = nThreshold1;
+    const int num2m = std::max(1, nThreshold2);
     const float baseThreshold = static_cast<float>(std::floor(num1m * nPairs / (num2m + 1.0)));
 
     binaryDescriptors.resize(N);

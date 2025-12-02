@@ -251,11 +251,11 @@ int main(int /*argc*/, char* /*argv*/[])
     // 7. Draw matches and save montage
 
     Mat montage_sift;
-    DrawMatchesAndSave(img1, img2, 
-                       kpts1, kpts2, 
+    DrawMatchesAndSave(img1, img2,
+                       kpts1, kpts2,
                        good_sift,
-                       "SIFT Matches", 
-                       "output_SIFT.jpg", 
+                       "SIFT Matches",
+                       "output_SIFT.jpg",
                        montage_sift);
     Mat montage_asv;
     DrawMatchesAndSave(img1, img2,

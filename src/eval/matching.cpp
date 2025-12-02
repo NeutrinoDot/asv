@@ -23,7 +23,7 @@ static cv::Point2f projectPoint(const cv::Point2f& ptA, const cv::Mat& H_AtoB) {
                        std::numeric_limits<float>::max());
   }
 
-  return cv::Point2f(static_cast<float>(X / W), 
+  return cv::Point2f(static_cast<float>(X / W),
                      static_cast<float>(Y / W));
 }
 
