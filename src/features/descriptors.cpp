@@ -15,7 +15,7 @@ public:
     return DescriptorType::SIFT;
   }
 
-  void detectAndCompute(const cv::Mat& image, 
+  void detectAndCompute(const cv::Mat& image,
                         DescriptorSet& out) override {
     out.keypoints.clear();
     out.descriptors.release();
@@ -42,12 +42,12 @@ public:
     double nThreshold2 = 1.0;
     bool isInter = false;
 
-    asv_ = cv::ASV::create(/*detectorType*/ 0, 
-                           nScales, 
-                           scale_min, 
-                           scale_max, 
-                           nThreshold1, 
-                           nThreshold2, 
+    asv_ = cv::ASV::create(/*detectorType*/ 0,
+                           nScales,
+                           scale_min,
+                           scale_max,
+                           nThreshold1,
+                           nThreshold2,
                            isInter);
   }
 
@@ -82,11 +82,11 @@ private:
 // Factory function to create descriptor extractors
 std::unique_ptr<IDescriptor> createDescriptor(DescriptorType type) {
   switch (type) {
-    case DescriptorType::SIFT:
-      return std::make_unique<SiftDescriptor>();
-    case DescriptorType::ASV_SIFT:
-      return std::make_unique<AsvSiftDescriptor>();
-    default:
-      throw std::invalid_argument("createDescriptor: Unsupported descriptor type.");
+  case DescriptorType::SIFT:
+    return std::make_unique<SiftDescriptor>();
+  case DescriptorType::ASV_SIFT:
+    return std::make_unique<AsvSiftDescriptor>();
+  default:
+    throw std::invalid_argument("createDescriptor: Unsupported descriptor type.");
   }
 }

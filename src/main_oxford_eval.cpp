@@ -23,10 +23,10 @@ static int main_test(int argc, char** argv) {
   cfg.matchingConfig.epsilonPx = 3.0f;
 
   std::vector<ImagePairSpec> imagePairSpecs = {
-      {"graf_1_2", "data/oxford/raw/graf/img1.ppm", 
-                   "data/oxford/raw/graf/img2.ppm", 
+      {"graf_1_2", "data/oxford/raw/graf/img1.ppm",
+                   "data/oxford/raw/graf/img2.ppm",
                    "data/oxford/raw/graf/H1to2p"},
-      // Add more image pairs as needed
+                   // Add more image pairs as needed
   };
 
   if (imagePairSpecs.empty()) {
@@ -48,7 +48,7 @@ static int main_test(int argc, char** argv) {
       descriptor->detectAndCompute(pair.imgB, descB);
 
       auto matches = matchDescriptors(descA, descB, cfg.matchingConfig);
-      labelMatchesWithHomography(descA, descB, pair.H_AtoB, 
+      labelMatchesWithHomography(descA, descB, pair.H_AtoB,
                                  cfg.matchingConfig.epsilonPx, matches);
 
       // TODO: Compute PR curve + AP for this pair, then aggregate mAP.

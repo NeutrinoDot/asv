@@ -9,25 +9,25 @@
 
 //Configure for matching step.
 struct MatchingConfig {
-  bool useRatioTest    = true;
+  bool useRatioTest = true;
   float ratioThreshold = 0.8f; // Lowe's ratio
-  float epsilonPx      = 3.0f;   // reprojection inlier threshold
+  float epsilonPx = 3.0f;   // reprojection inlier threshold
 };
 
 // One match + correctness label.
 struct MatchWithLabel {
-  int   idxA      = -1; // index into descA.keypoints
-  int   idxB      = -1; // index into descB.keypoints
-  float distance  = 0.1f;
+  int   idxA = -1; // index into descA.keypoints
+  int   idxB = -1; // index into descB.keypoints
+  float distance = 0.1f;
   bool  isCorrect = false;
 };
 
-std::vector<MatchWithLabel> matchDescriptors(const DescriptorSet& descA, 
-                                             const DescriptorSet& descB, 
+std::vector<MatchWithLabel> matchDescriptors(const DescriptorSet& descA,
+                                             const DescriptorSet& descB,
                                              const MatchingConfig& config);
 
-void labelMatchesWithHomography(const DescriptorSet& descA, 
-                                const DescriptorSet& descB, 
-                                const cv::Mat& H_AtoB, 
-                                float epsilonPx, 
+void labelMatchesWithHomography(const DescriptorSet& descA,
+                                const DescriptorSet& descB,
+                                const cv::Mat& H_AtoB,
+                                float epsilonPx,
                                 std::vector<MatchWithLabel>& matches);
