@@ -41,6 +41,8 @@ namespace cv {
                                    const int nThreshold2 = 1,
                                    const bool isInter = false);
 
+    using Feature2D::compute;
+
     /** Computes ASV descriptors
      */
     virtual void compute(const InputArray image,

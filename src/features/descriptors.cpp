@@ -38,8 +38,8 @@ public:
     int nScales = 5;
     float scale_min = 0.7f;
     float scale_max = 1.4f;
-    double nThreshold1 = 1.0;
-    double nThreshold2 = 1.0;
+    int nThreshold1 = 1;
+    int nThreshold2 = 1;
     bool isInter = false;
 
     asv_ = cv::ASV::create(/*detectorType*/ 0,
