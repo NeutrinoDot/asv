@@ -205,8 +205,8 @@ int main(int /*argc*/, char* /*argv*/[])
     int nScales = 5;
     float scale_min = 0.7f;
     float scale_max = 1.4f;
-    double nThreshold1 = 1.0;   // stage-1 / 2M params (tweak as needed)
-    double nThreshold2 = 1.0;
+    int nThreshold1 = 1;   // stage-1 / 2M params (tweak as needed)
+    int nThreshold2 = 1;
     bool isInter = false;
 
     Ptr<ASV> asv = ASV::create(detectorType,
