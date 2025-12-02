@@ -59,6 +59,7 @@ namespace cv {
     bool isInter;
     int descriptorSize;
     int descriptorType;
+    int binaryDescriptorSize;
     std::vector<Mat> realDescriptors;
     std::vector<Mat> binaryDescriptors;
 
@@ -71,18 +72,13 @@ namespace cv {
     void computeRealASV(const std::vector<std::vector<Mat>>& multiScaleDescriptors);
 
     // calculate real stability vote of a multi-scale feature descriptor
-    void computeFeatureASV(const std::vector<Mat>& keypointDescriptors, Mat& votes);
+    void computeFeatureASV(const std::vector<Mat>& keypointDescriptors, Mat& votes) const;
 
-    // calculate stability votes between two descriptors
-    void computeStabilityVote(const Mat& desc1, const Mat& desc2, Mat& votes) const;
+    // calculate absolute difference between two descriptors across all dimensions
+    void computeAbsDiff(const Mat& desc1, const Mat& desc2, Mat& votes) const;
 
     // convert real-valued descriptors to binary descriptor
     void computeBinaryASV();
-
-    // compute scale factors
-    void computeScaleFactors(const float scale_min, const float scale_max);
-
-    int nChooseK(int n, int k);
   };
 } // namespace cv
 #endif // ASV_HPP
