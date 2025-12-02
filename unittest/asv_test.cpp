@@ -205,8 +205,8 @@ int main(int /*argc*/, char* /*argv*/[])
     int nScales = 5;
     float scale_min = 0.7f;
     float scale_max = 1.4f;
-    int nThreshold1 = 1;   // stage-1 / 2M params (tweak as needed)
-    int nThreshold2 = 1;
+    int nThreshold1 = 3;   // stage-1
+    int nThreshold2 = 1;   // stage-2
     bool isInter = false;
 
     Ptr<ASV> asv = ASV::create(detectorType,
@@ -217,7 +217,11 @@ int main(int /*argc*/, char* /*argv*/[])
                                nThreshold2,
                                isInter);
 
-    cout << "Created ASV descriptor.\n";
+    cout << "Created ASV with detectorType=" << detectorType
+      << " nScales=" << nScales
+      << " nThreshold1=" << nThreshold1
+      << " nThreshold2=" << nThreshold2
+      << endl;
 
     // 5. Compute ASV descriptors (real + binary) for both images
     Mat desc1_real, desc1_bin;

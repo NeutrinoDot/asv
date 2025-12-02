@@ -6,6 +6,10 @@
 #include <algorithm>
 #include <opencv2/features2d.hpp>
 
+#include <util/asv_utils.hpp>
+
+using namespace asv::util;
+
 namespace cv {
 
   ASV::ASV(const int detectorType, const int _nScales,
@@ -16,6 +20,10 @@ namespace cv {
     nThreshold1(_nThreshold1),
     nThreshold2(_nThreshold2),
     isInter(_isInter) {
+
+    CV_Assert(nScales > 0);
+    CV_Assert(scale_min > 0 && scale_max > 0 && scale_max >= scale_min);
+    CV_Assert(nThreshold1 >= 1 && nThreshold2 >= 1);
 
     switch (detectorType) {
     case 1: // ORB
@@ -35,10 +43,12 @@ namespace cv {
       break;
     }
 
+    binaryDescriptorSize = descriptorSize * nThreshold2;
+
     realDescriptors.clear();
     binaryDescriptors.clear();
 
-    computeScaleFactors(scale_min, scale_max);
+    computeScaleFactors(nScales, scale_min, scale_max, scaleFactors);
   }
 
   Ptr<ASV> ASV::create(const int detectorType, const int nScales,
@@ -75,11 +85,11 @@ namespace cv {
       CV_Error(Error::StsBadArg, "No valid keypoints after multi-scale extraction.");
     }
 
-    // compute stability voting on multiScaleDescriptors
+    // first stage ASV (1M): multi-thresholding + accumulated stability voting
     computeRealASV(multiScaleDescriptors);
 
-    Mat realMat = Mat::zeros(N, descriptorSize, CV_32F);
     if (!realDescriptors.empty()) {
+      Mat realMat = Mat::zeros(N, descriptorSize, CV_32F);
       CV_Assert(static_cast<int>(realDescriptors.size()) == N);
       for (int i = 0; i < N; ++i) {
         const Mat& desc = realDescriptors[i];
@@ -88,10 +98,13 @@ namespace cv {
         CV_Assert(desc.type() == CV_32F);
         desc.row(0).copyTo(realMat.row(i));
       }
+      realMat.copyTo(_descriptor);
     }
-    realMat.copyTo(_descriptor);
+    else {
+      _descriptor.release();
+    }
 
-    // compute binary descriptors from real-valued descriptors
+    // Second-stage ASV (1M2M): multiple thresholds on 1M descriptor
     computeBinaryASV();
 
     if (_binaryDescriptors.needed()) {
@@ -123,20 +136,21 @@ namespace cv {
     multiScaleDescriptors.assign(nKeypoints, std::vector<Mat>(nScales));
 
     if (nKeypoints == 0) return;
-    std::cout << "Extracting multi-scale descriptors for "
-      << nKeypoints << " keypoints." << std::endl;
 
     for (int scaleIdx = 0; scaleIdx < nScales; ++scaleIdx) {
       // 1) Build scaled keypoints for this scale
       std::vector<KeyPoint> scaledKeypoints;
       scaledKeypoints.reserve(nKeypoints);
+      const float scaleFactor = static_cast<float>(scaleFactors[scaleIdx]);
+
+      // 2) Scale keypoint size by scaleFactor
       for (int i = 0; i < nKeypoints; ++i) {
-        KeyPoint kp = keypoints[i];  // deep copy keypoint
-        kp.size *= static_cast<float>(scaleFactors[scaleIdx]);
+        KeyPoint kp = keypoints[i];
+        kp.size *= scaleFactor;
         scaledKeypoints.push_back(kp);
       }
 
-      // 2) Compute descriptors for all keypoints at this scale
+      // 3) Compute descriptors for all keypoints at this scale
       Mat descs;
       detector->compute(image, scaledKeypoints, descs);
 
@@ -147,15 +161,14 @@ namespace cv {
         continue;
       }
 
-      // 3) Slice each row into multiScaleDescriptors[i][scaleIdx]
+      // 4) Slice each row into multiScaleDescriptors[i][scaleIdx]
       for (int i = 0; i < nKeypoints; ++i) {
         multiScaleDescriptors[i][scaleIdx] = descs.row(i).clone();
       }
-      std::cout << "Extracted descriptors at scale index "
-        << scaleIdx << std::endl;
     }
   }
 
+  // First stage ASV (1M)
   void ASV::computeRealASV(const std::vector<std::vector<Mat>>& multiScaleDescriptors) {
     const int N = static_cast<int>(multiScaleDescriptors.size());
     if (N == 0) return;
@@ -167,12 +180,8 @@ namespace cv {
     for (int i = 0; i < N; ++i) {
       const std::vector<Mat>& scaleDescs = multiScaleDescriptors[i];
 
-      int S = 0;
-      for (const Mat& d : scaleDescs) {
-        if (!d.empty()) ++S;
-      }
-      if (S < 2) {
-        // Not enough valid scalepairs to compute stability votes
+      // if this keypoint has no scale descriptors, leave empty
+      if (scaleDescs.empty()) {
         realDescriptors[i] = Mat();
         continue;
       }
@@ -188,60 +197,76 @@ namespace cv {
 
   // calculate real stability vote of a multi-scale feature descriptor
   void ASV::computeFeatureASV(const std::vector<Mat>& keypointDescriptors,
-                              Mat& votes) {
-    const int S = static_cast<int>(keypointDescriptors.size());
-    if (S == 0) return;
+                              Mat& votes) const {
+    if (keypointDescriptors.empty()) return;
 
-    // Calculate stability votes between all unique scale pairs
-    for (size_t s1 = 0; s1 < S; ++s1) {
-      if (keypointDescriptors[s1].empty()) continue;
-      for (size_t s2 = s1 + 1; s2 < S; ++s2) {
-        if (keypointDescriptors[s2].empty()) continue;
-        computeStabilityVote(keypointDescriptors[s1], keypointDescriptors[s2],
-                             votes);
+    const int dim = descriptorSize;
+
+    // 1) Collect indices of valid scales
+    std::vector<int> valid;
+    valid.reserve(keypointDescriptors.size());
+    for (int s = 0; s < static_cast<int>(keypointDescriptors.size()); ++s) {
+      if (!keypointDescriptors[s].empty()) {
+        valid.push_back(s);
       }
+    }
+
+    const int Sv = static_cast<int>(valid.size());
+    if (Sv < 2) return;  // need at least 2 valid scales to compare
+
+    // 2) Number of unique scale pairs C(Sv, 2)
+    const int numPairs = Sv * (Sv - 1) / 2;
+
+    // Build M: dim x numPairs, where each column is |x_s1 - x_s2|
+    Mat M(dim, numPairs, CV_32F);
+    int col = 0;
+
+    for (int a = 0; a < Sv - 1; ++a) {
+      const int s1 = valid[a];
+      for (int b = a + 1; b < Sv; ++b) {
+        const int s2 = valid[b];
+
+        Mat diffCol;
+        computeAbsDiff(keypointDescriptors[s1],
+                       keypointDescriptors[s2], diffCol);
+
+        CV_Assert(diffCol.rows == dim && diffCol.cols == 1);
+
+        // Copy column into M
+        diffCol.col(0).copyTo(M.col(col));
+        ++col;
+      }
+    }
+    CV_Assert(col == numPairs);
+
+    // 3) First-stage multi-thresholding
+    const int num_q = nThreshold1 + 1;
+
+    Mat outVec;
+    multiThresholdMatrix(M, num_q, outVec);
+
+    CV_Assert(outVec.rows == dim && outVec.cols == 1);
+
+    // 4) Convert outVec to votes
+    for (int j = 0; j < dim; ++j) {
+      votes.at<float>(0, j) = outVec.at<float>(j, 0);
     }
   }
 
-  // Calculate stability votes between two descriptors
-  void ASV::computeStabilityVote(const Mat& desc1, const Mat& desc2, Mat& votes) const {
+  // Calculate absolute difference between two descriptors across all dimensions
+  void ASV::computeAbsDiff(const Mat& desc1, const Mat& desc2, Mat& diffCol) const {
+    CV_Assert(!desc1.empty() && !desc2.empty());
+    CV_Assert(desc1.size() == desc2.size());
+
     Mat d1f, d2f;
-    if (desc1.type() != CV_32F) {
-      desc1.convertTo(d1f, CV_32F);
-    }
-    else {
-      d1f = desc1;
-    }
-    if (desc2.type() != CV_32F) {
-      desc2.convertTo(d2f, CV_32F);
-    }
-    else {
-      d2f = desc2;
-    }
+    ensureRowFloat(desc1, d1f, descriptorSize);
+    ensureRowFloat(desc2, d2f, descriptorSize);
 
-    CV_Assert(d1f.rows == 1 && d1f.cols == descriptorSize);
-    CV_Assert(d2f.rows == 1 && d2f.cols == descriptorSize);
-    CV_Assert(votes.rows == 1 && votes.cols == descriptorSize);
-    CV_Assert(votes.type() == CV_32F);
+    // Compute |d2 - d1| as dim x 1
+    Mat diffRow;
+    absdiff(d1f, d2f, diffRow);
 
-    // diff(i) = |d1(i)| - |d2(i)|  (per dimension)
-    Mat diff(1, descriptorSize, CV_32F);
-    for (int i = 0; i < descriptorSize; ++i) {
-      float v1 = d1f.at<float>(0, i);
-      float v2 = d2f.at<float>(0, i);
-      diff.at<float>(0, i) = std::abs(v1) - std::abs(v2);
-    }
-
-    // Simplified local thresholding: median of diff
-    Mat sorted;
-    cv::sort(diff, sorted, cv::SORT_EVERY_ROW | cv::SORT_ASCENDING);
-    float median = sorted.at<float>(0, descriptorSize / 2);
-
-    for (int j = 0; j < descriptorSize; ++j) {
-      if (diff.at<float>(0, j) < median) {
-        votes.at<float>(0, j) += 1.0f;
-      }
-    }
+    diffCol = diffRow.t(); // transpose to dim x 1
   }
 
   // Convert real-valued descriptors to binary descriptor
@@ -254,9 +279,11 @@ namespace cv {
     const int nPairs = nChooseK(nScales, 2);
     if (nPairs <= 0) return;
 
-    const int num1m = nThreshold1;
-    const int num2m = std::max(1, nThreshold2);
-    const float baseThreshold = static_cast<float>(std::floor(num1m * nPairs / (num2m + 1.0)));
+    // Precompute thresholds for each 2nd-stage slot
+    std::vector<float> thresholds(nThreshold2);
+    for (int k = 0; k < nThreshold2; ++k) {
+      thresholds[k] = static_cast<float>(std::floor(nThreshold1 * nPairs / (nThreshold2 + 1) * (k + 1)));
+    }
 
     binaryDescriptors.resize(N);
 
@@ -267,41 +294,21 @@ namespace cv {
         continue;
       }
 
-      CV_Assert(real.rows == 1 && real.cols == descriptorSize);
-      CV_Assert(real.type() == CV_32F);
+      CV_Assert(real.rows == 1 && real.cols == descriptorSize && real.type() == CV_32F);
 
-      Mat bin = Mat::zeros(1, descriptorSize, CV_8U);
-      for (int j = 0; j < descriptorSize; ++j) {
-        const float vote = real.at<float>(0, j);
-        if (vote > baseThreshold) {
-          bin.at<uchar>(0, j) = static_cast<uchar>(1);
+      Mat bin = Mat::zeros(1, binaryDescriptorSize, CV_8U);
+      for (int k = 0; k < nThreshold2; ++k) {
+        const float thr = thresholds[k];
+        const int offset = k * descriptorSize;
+
+        for (int j = 0; j < descriptorSize; ++j) {
+          const float v = real.at<float>(0, j);
+          if (v >= thr) {
+            bin.at<uchar>(0, offset + j) = static_cast<uchar>(1);
+          }
         }
       }
       binaryDescriptors[i] = bin;
     }
-  }
-
-  void ASV::computeScaleFactors(const float scale_min, const float scale_max) {
-    if (nScales <= 1) {
-      scaleFactors.assign(1, 1.0);
-      return;
-    }
-
-    const double step = (scale_max - scale_min) / (nScales - 1);
-    scaleFactors.resize(nScales);
-    for (int i = 0; i < nScales; ++i) {
-      scaleFactors[i] = scale_min + i * step;
-    }
-  }
-
-  int ASV::nChooseK(int n, int k) {
-    if (k > n) return 0;
-    if (k == 0 || k == n) return 1;
-    k = std::min(k, n - k);
-    int c = 1;
-    for (int i = 0; i < k; ++i) {
-      c = c * (n - i) / (i + 1);
-    }
-    return c;
   }
 } // namespace cv
