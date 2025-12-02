@@ -18,6 +18,11 @@ namespace cv {
   */
   class CV_EXPORTS_W ASV : public Feature2D {
   public:
+    enum ASVType {
+      Real,
+      Binary
+    };
+
     /** Constructor
     @param detector The feature detector used by ASV.
     @param nScales Number of scales to sample for each keypoint.
@@ -42,6 +47,19 @@ namespace cv {
                                    const bool isInter = false);
 
     using Feature2D::compute;
+    using Feature2D::detectAndCompute;
+
+    // Set/get which ASV type detectAndCompute returns
+    void setASVType(const ASVType type) { asvType = type; }
+    ASVType getASVType() const { return asvType; }
+
+    /** Detects keypoints with base detector and computes real ASV descriptors
+    */
+    virtual void detectAndCompute(InputArray image,
+                                  InputArray mask,
+                                  std::vector<KeyPoint>& keypoints,
+                                  OutputArray descriptors,
+                                  bool useProvidedKeypoints = false) CV_OVERRIDE;
 
     /** Computes ASV descriptors
      */
@@ -62,6 +80,7 @@ namespace cv {
     int binaryDescriptorSize;
     std::vector<Mat> realDescriptors;
     std::vector<Mat> binaryDescriptors;
+    ASVType asvType = ASVType::Real;
 
     // extract an array of descriptors at multiple scales per keypoint
     void extractMultiScaleDescriptors(const Mat& image,

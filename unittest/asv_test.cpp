@@ -78,7 +78,8 @@ static Mat LoadImageOrThrow(const string& path)
  * @post kpts.size() >= 0
  */
 static void DetectAndDescribe(const Ptr<Feature2D>& detector, const Mat& img,
-                              vector<KeyPoint>& kpts, Mat& desc)
+                              vector<KeyPoint>& kpts, Mat& desc,
+                              const bool useProvidedKeypoints = false)
 {
   CV_Assert(!img.empty() && detector);
   Mat gray;
@@ -88,7 +89,7 @@ static void DetectAndDescribe(const Ptr<Feature2D>& detector, const Mat& img,
   else {
     gray = img;
   }
-  detector->detectAndCompute(gray, noArray(), kpts, desc);
+  detector->detectAndCompute(gray, noArray(), kpts, desc, useProvidedKeypoints);
 }
 
 /**
@@ -205,7 +206,7 @@ int main(int /*argc*/, char* /*argv*/[])
     int nScales = 5;
     float scale_min = 0.7f;
     float scale_max = 1.4f;
-    int nThreshold1 = 3;   // stage-1
+    int nThreshold1 = 1;   // stage-1
     int nThreshold2 = 1;   // stage-2
     bool isInter = false;
 
@@ -226,17 +227,31 @@ int main(int /*argc*/, char* /*argv*/[])
     // 5. Compute ASV descriptors (real + binary) for both images
     Mat desc1_real, desc1_bin;
     Mat desc2_real, desc2_bin;
+    kpts1.clear();
+    kpts2.clear();
 
-    asv->compute(gray1, kpts1, desc1_real, desc1_bin);
-    asv->compute(gray2, kpts2, desc2_real, desc2_bin);
-
+    asv->setASVType(ASV::ASVType::Real);
+    DetectAndDescribe(asv, img1, kpts1, desc1_real, true);
     cout << "ASV real descriptors img1: " << desc1_real.rows
       << " x " << desc1_real.cols << " (type " << desc1_real.type() << ")\n";
+    DetectAndDescribe(asv, img2, kpts2, desc2_real, true);
     cout << "ASV real descriptors img2: " << desc2_real.rows
       << " x " << desc2_real.cols << " (type " << desc2_real.type() << ")\n";
 
+    asv->setASVType(ASV::ASVType::Binary);
+    DetectAndDescribe(asv, img1, kpts1, desc1_bin, true);
+    cout << "ASV binary descriptors img1: " << desc1_bin.rows
+      << " x " << desc1_bin.cols << " (type " << desc1_bin.type() << ")\n";
+    DetectAndDescribe(asv, img2, kpts2, desc2_bin, true);
+    cout << "ASV binary descriptors img2: " << desc2_bin.rows
+      << " x " << desc2_bin.cols << " (type " << desc2_bin.type() << ")\n";
+
     if (desc1_real.empty() || desc2_real.empty()) {
-      cerr << "ASV descriptors are empty. Check ASV implementation.\n";
+      cerr << "ASV real descriptors are empty. Check ASV implementation.\n";
+      return 1;
+    }
+    if (desc1_bin.empty() || desc2_bin.empty()) {
+      cerr << "ASV binary descriptors are empty. Check ASV implementation.\n";
       return 1;
     }
 
@@ -247,10 +262,15 @@ int main(int /*argc*/, char* /*argv*/[])
     cout << "Good SIFT matches after ratio test: " << good_sift.size() << '\n';
 
     // 6. Match ASV descriptors using BFMatcher + ratio test (NORM_L2 for CV_32F)
-    vector<DMatch> good_asv;
-    MatchWithRatioTest(NORM_L2, desc1_real, desc2_real, good_asv);
+    vector<DMatch> good_asv_real;
+    MatchWithRatioTest(NORM_L2, desc1_real, desc2_real, good_asv_real);
 
-    cout << "Good ASV matches after ratio test: " << good_asv.size() << '\n';
+    cout << "Good real ASV matches after ratio test: " << good_asv_real.size() << '\n';
+
+    vector<DMatch> good_asv_bin;
+    MatchWithRatioTest(NORM_HAMMING, desc1_bin, desc2_bin, good_asv_bin);
+
+    cout << "Good binary real ASV matches after ratio test: " << good_asv_bin.size() << '\n';
 
     // 7. Draw matches and save montage
 
@@ -261,13 +281,20 @@ int main(int /*argc*/, char* /*argv*/[])
                        "SIFT Matches",
                        "output_SIFT.jpg",
                        montage_sift);
-    Mat montage_asv;
+    Mat montage_asv_real;
     DrawMatchesAndSave(img1, img2,
                        kpts1, kpts2,
-                       good_asv,
-                       "ASV Matches",
-                       "output_ASV.jpg",
-                       montage_asv);
+                       good_asv_real,
+                       "ASV Real Matches",
+                       "output_ASV_Real.jpg",
+                       montage_asv_real);
+    Mat montage_asv_bin;
+    DrawMatchesAndSave(img1, img2,
+                       kpts1, kpts2,
+                       good_asv_bin,
+                       "ASV Binary Matches",
+                       "output_ASV_Binary.jpg",
+                       montage_asv_bin);
 
     cout << "Press any key to exit..." << endl;
     waitKey(0);

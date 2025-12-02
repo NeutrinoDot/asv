@@ -37,7 +37,7 @@ namespace cv {
       descriptorType = CV_8U;
       break;
     default: // 0 or other -> SIFT
-      detector = SIFT::create(0, 3, 0, 0);
+      detector = SIFT::create();
       descriptorSize = 128;
       descriptorType = CV_32F;
       break;
@@ -57,6 +57,43 @@ namespace cv {
                        const bool isInter) {
     return makePtr<ASV>(detectorType, nScales, scale_min, scale_max,
                         nThreshold1, nThreshold2, isInter);
+  }
+
+  // detect and compute descriptors
+  void ASV::detectAndCompute(InputArray _image,
+                             InputArray _mask,
+                             std::vector<KeyPoint>& keypoints,
+                             OutputArray _descriptor,
+                             bool useProvidedKeypoints) {
+    CV_Assert(!detector.empty());
+
+    Mat image = _image.getMat();
+    Mat mask = _mask.getMat();
+    if (image.empty()) {
+      _descriptor.release();
+      CV_Error(Error::StsBadArg, "Input image is empty.");
+    }
+
+    // detect keypoints if not provided
+    if (!useProvidedKeypoints || keypoints.empty()) {
+      detector->detect(image, keypoints, mask);
+    }
+
+    if (keypoints.empty()) {
+      _descriptor.release();
+      CV_Error(Error::StsBadArg, "No keypoints detected.");
+    }
+
+    // compute descriptors
+    Mat real, binary;
+    compute(image, keypoints, real, binary);
+
+    if (asvType == Real) {
+      real.copyTo(_descriptor);
+    }
+    else if (asvType == Binary) {
+      binary.copyTo(_descriptor);
+    }
   }
 
   // compute descriptors
@@ -110,11 +147,11 @@ namespace cv {
     if (_binaryDescriptors.needed()) {
       if (!binaryDescriptors.empty()) {
         CV_Assert(static_cast<int>(binaryDescriptors.size()) == N);
-        Mat binMat = Mat::zeros(N, descriptorSize, CV_8U);
+        Mat binMat = Mat::zeros(N, binaryDescriptorSize, CV_8U);
         for (int i = 0; i < N; ++i) {
           const Mat& desc = binaryDescriptors[i];
           if (desc.empty()) continue;
-          CV_Assert(desc.rows == 1 && desc.cols == descriptorSize);
+          CV_Assert(desc.rows == 1 && desc.cols == binaryDescriptorSize);
           CV_Assert(desc.type() == CV_8U);
           desc.row(0).copyTo(binMat.row(i));
         }
