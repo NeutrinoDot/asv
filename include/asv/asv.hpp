@@ -45,7 +45,7 @@ namespace cv {
 
     /** Computes ASV descriptors
      */
-    virtual void compute(const InputArray image,
+    virtual void compute(InputArray image,
                          const std::vector<KeyPoint>& keypoints,
                          OutputArray realDescriptors,
                          OutputArray binaryDescriptors);

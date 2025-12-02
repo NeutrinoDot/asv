@@ -50,7 +50,7 @@ namespace cv {
   }
 
   // compute descriptors
-  void ASV::compute(const InputArray _image,
+  void ASV::compute(InputArray _image,
                     const std::vector<KeyPoint>& keypoints,
                     OutputArray _descriptor, OutputArray _binaryDescriptors) {
     CV_Assert(!detector.empty());
