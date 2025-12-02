@@ -24,11 +24,11 @@ namespace cv {
     };
 
     /** Constructor
-    @param detector The feature detector used by ASV.
+    @param detectorType The feature detector used by ASV.
     @param nScales Number of scales to sample for each keypoint.
-    @param scaleStep Step size between scales.
-    @param nThreshold1 Number of thresholds for each bin for 1st-stage
-    thresholding
+    @param scale_min Minimum scale factor.
+    @param scale_max Maximum scale factor.
+    @param nThreshold1 Number of thresholds for 1st-stage thresholding
     @param nThreshold2 Number of thresholds for 2nd-stage thresholding
     @param isInter Flag to interpolate features between scales
     */
