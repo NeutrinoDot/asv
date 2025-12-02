@@ -30,11 +30,9 @@ private:
 };
 
 // ----------------- ASV Descriptor Extractor ----------------
-class AsvSiftDescriptor : public IDescriptor {
+class AsvDescriptor : public IDescriptor {
 public:
-  AsvSiftDescriptor() {
-    sift_ = cv::SIFT::create();
-
+  explicit AsvDescriptor(DescriptorType t) : type_(t) {
     int nScales = 5;
     float scale_min = 0.7f;
     float scale_max = 1.4f;
@@ -49,10 +47,17 @@ public:
                            nThreshold1,
                            nThreshold2,
                            isInter);
+
+    if (type_ == DescriptorType::ASV_BINARY) {
+      asv_->setASVType(cv::ASV::ASVType::Binary);
+    }
+    else {
+      asv_->setASVType(cv::ASV::ASVType::Real);
+    }
   }
 
   DescriptorType type() const override {
-    return DescriptorType::ASV_SIFT;
+    return type_;
   }
 
   void detectAndCompute(const cv::Mat& image,
@@ -61,21 +66,12 @@ public:
     out.descriptors.release();
 
     if (image.empty()) {
-      throw std::invalid_argument("AsvSiftDescriptor::detectAndCompute: Input image is empty.");
+      throw std::invalid_argument("ASVDescriptor::detectAndCompute: Input image is empty.");
     }
-
-    sift_->detect(image, out.keypoints);
-    if (out.keypoints.empty()) {
-      return;
-    }
-
-    cv::Mat realDescriptors, binaryDescriptors;
-    asv_->compute(image, out.keypoints, realDescriptors, binaryDescriptors);
-
-    out.descriptors = realDescriptors;
+    asv_->detectAndCompute(image, cv::noArray(), out.keypoints, out.descriptors);
   }
 private:
-  cv::Ptr<cv::SIFT> sift_;
+  DescriptorType type_;
   cv::Ptr<cv::ASV> asv_;
 };
 
@@ -84,8 +80,10 @@ std::unique_ptr<IDescriptor> createDescriptor(DescriptorType type) {
   switch (type) {
   case DescriptorType::SIFT:
     return std::make_unique<SiftDescriptor>();
-  case DescriptorType::ASV_SIFT:
-    return std::make_unique<AsvSiftDescriptor>();
+  case DescriptorType::ASV_REAL:
+    return std::make_unique<AsvDescriptor>(type);
+  case DescriptorType::ASV_BINARY:
+    return std::make_unique<AsvDescriptor>(type);
   default:
     throw std::invalid_argument("createDescriptor: Unsupported descriptor type.");
   }

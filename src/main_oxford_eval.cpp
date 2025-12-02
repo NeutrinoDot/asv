@@ -17,7 +17,7 @@ struct EvalConfig {
 
 static int main_test(int argc, char** argv) {
   EvalConfig cfg;
-  cfg.descriptorType = DescriptorType::ASV_SIFT;
+  cfg.descriptorType = DescriptorType::ASV_REAL;
   cfg.matchingConfig.useRatioTest = true;
   cfg.matchingConfig.ratioThreshold = 0.8f;
   cfg.matchingConfig.epsilonPx = 3.0f;

@@ -8,7 +8,8 @@
 
 enum class DescriptorType {
   SIFT,
-  ASV_SIFT,
+  ASV_REAL,
+  ASV_BINARY,
   ORB,
   BRISK,
   CUSTOM
