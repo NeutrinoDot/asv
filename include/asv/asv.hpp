@@ -30,12 +30,10 @@ namespace cv {
     @param scale_max Maximum scale factor.
     @param nThreshold1 Number of thresholds for 1st-stage thresholding
     @param nThreshold2 Number of thresholds for 2nd-stage thresholding
-    @param isInter Flag to interpolate features between scales
     */
     ASV(const int detectorType, const int nScales,
         const float scale_min, const float scale_max,
-        const int nThreshold1, const int nThreshold2,
-        const bool isInter);
+        const int nThreshold1, const int nThreshold2);
 
     /** Factory */
     CV_WRAP static Ptr<ASV> create(const int detectorType = 0,
@@ -43,8 +41,7 @@ namespace cv {
                                    const float scale_min = 0.7f,
                                    const float scale_max = 1.4f,
                                    const int nThreshold1 = 1,
-                                   const int nThreshold2 = 1,
-                                   const bool isInter = false);
+                                   const int nThreshold2 = 1);
 
     using Feature2D::compute;
     using Feature2D::detectAndCompute;
@@ -74,7 +71,6 @@ namespace cv {
     std::vector<double> scaleFactors;
     int nThreshold1;
     int nThreshold2;
-    bool isInter;
     int descriptorSize;
     int descriptorType;
     int binaryDescriptorSize;

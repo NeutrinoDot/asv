@@ -9,8 +9,6 @@ build/
 **/build/
 */CMakeLists.txt
 
-temp/
-
 # Visual Studio files
 .vs/
 *.sln
@@ -48,3 +46,12 @@ out/
 *.dll
 *.lib
 *.exp
+
+# Shell scripts
+*.sh
+
+# Temp
+temp/
+tmp/
+
+output/

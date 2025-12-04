@@ -38,15 +38,13 @@ public:
     float scale_max = 1.4f;
     int nThreshold1 = 1;
     int nThreshold2 = 1;
-    bool isInter = false;
 
     asv_ = cv::ASV::create(/*detectorType*/ 0,
                            nScales,
                            scale_min,
                            scale_max,
                            nThreshold1,
-                           nThreshold2,
-                           isInter);
+                           nThreshold2);
 
     if (type_ == DescriptorType::ASV_BINARY) {
       asv_->setASVType(cv::ASV::ASVType::Binary);
