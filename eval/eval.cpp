@@ -171,14 +171,14 @@ static void DrawMatchesAndSave(const Mat& img1, const Mat& img2,
  * @pre  "kittens1.jpg" and "kittens2.jpg" exist in working directory.
  * @post "output_ASV.jpg" is written; window shown until key press.
  */
-int main(int /*argc*/, char* /*argv*/[])
+int main(int argc, char* argv[])
 {
   try {
     // 1. Load input images (BGR)
-    Mat img1 = LoadImageOrThrow("unittest/kittens1.jpg");
-    Mat img2 = LoadImageOrThrow("unittest/kittens2.jpg");
+    Mat img1 = LoadImageOrThrow("../data/Oxford_dataset/bark/img1.ppm");
+    Mat img2 = LoadImageOrThrow("../data/Oxford_dataset/bark/img2.ppm");
 
-    cout << "Loaded kittens1.jpg and kittens2.jpg\n";
+    cout << "Loaded img1.ppm and img2.ppm\n";
 
     // 2. Detect keypoints with SIFT (matches ASV detectorType=0)
     Ptr<SIFT> sift = SIFT::create();
@@ -277,21 +277,21 @@ int main(int /*argc*/, char* /*argv*/[])
                        kpts1, kpts2,
                        good_sift,
                        "SIFT Matches",
-                       "output_SIFT.jpg",
+                       "output/output_SIFT.jpg",
                        montage_sift);
     Mat montage_asv_real;
     DrawMatchesAndSave(img1, img2,
                        kpts1, kpts2,
                        good_asv_real,
                        "ASV Real Matches",
-                       "output_ASV_Real.jpg",
+                       "output/output_ASV_Real.jpg",
                        montage_asv_real);
     Mat montage_asv_bin;
     DrawMatchesAndSave(img1, img2,
                        kpts1, kpts2,
                        good_asv_bin,
                        "ASV Binary Matches",
-                       "output_ASV_Binary.jpg",
+                       "output/output_ASV_Binary.jpg",
                        montage_asv_bin);
 
     cout << "Press any key to exit..." << endl;

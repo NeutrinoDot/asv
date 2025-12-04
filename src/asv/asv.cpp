@@ -14,12 +14,10 @@ namespace cv {
 
   ASV::ASV(const int detectorType, const int _nScales,
            const float scale_min, const float scale_max,
-           const int _nThreshold1, const int _nThreshold2,
-           const bool _isInter)
+           const int _nThreshold1, const int _nThreshold2)
     : nScales(_nScales),
     nThreshold1(_nThreshold1),
-    nThreshold2(_nThreshold2),
-    isInter(_isInter) {
+    nThreshold2(_nThreshold2) {
 
     CV_Assert(nScales > 0);
     CV_Assert(scale_min > 0 && scale_max > 0 && scale_max >= scale_min);
@@ -53,10 +51,9 @@ namespace cv {
 
   Ptr<ASV> ASV::create(const int detectorType, const int nScales,
                        const float scale_min, const float scale_max,
-                       const int nThreshold1, const int nThreshold2,
-                       const bool isInter) {
+                       const int nThreshold1, const int nThreshold2) {
     return makePtr<ASV>(detectorType, nScales, scale_min, scale_max,
-                        nThreshold1, nThreshold2, isInter);
+                        nThreshold1, nThreshold2);
   }
 
   // detect and compute descriptors
@@ -224,7 +221,7 @@ namespace cv {
       }
 
       // Compute stability votes for each descriptor dimension
-      Mat featureASV = Mat::zeros(1, descriptorSize, CV_32F);
+      Mat featureASV = Mat::zeros(nThreshold1, descriptorSize, CV_32F);
       computeFeatureASV(scaleDescs, featureASV);
 
       // Copy to output
@@ -233,6 +230,8 @@ namespace cv {
   }
 
   // calculate real stability vote of a multi-scale feature descriptor
+  // keypointDescriptors: array of descriptors at multiple scales for a keypoint
+  // votes: output stability votes (nThreshold1 x descriptorSize)
   void ASV::computeFeatureASV(const std::vector<Mat>& keypointDescriptors,
                               Mat& votes) const {
     if (keypointDescriptors.empty()) return;
