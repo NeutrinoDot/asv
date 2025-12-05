@@ -7,14 +7,18 @@
 
 #include "features/descriptors.hpp"
 
-//Configure for matching step.
+/**
+ * Configure for matching step. 
+ */
 struct MatchingConfig {
   bool useRatioTest = true;
   float ratioThreshold = 0.8f; // Lowe's ratio
   float epsilonPx = 3.0f;   // reprojection inlier threshold
 };
 
-// One match + correctness label.
+/**
+ * One match + correctness label.
+ */
 struct MatchWithLabel {
   int   idxA = -1; // index into descA.keypoints
   int   idxB = -1; // index into descB.keypoints
@@ -22,10 +26,16 @@ struct MatchWithLabel {
   bool  isCorrect = false;
 };
 
+/**
+ * Match descriptors between two sets.
+ */
 std::vector<MatchWithLabel> matchDescriptors(const DescriptorSet& descA,
                                              const DescriptorSet& descB,
                                              const MatchingConfig& config);
 
+/**
+ * Label matches as correct or incorrect using a homography.
+ */
 void labelMatchesWithHomography(const DescriptorSet& descA,
                                 const DescriptorSet& descB,
                                 const cv::Mat& H_AtoB,

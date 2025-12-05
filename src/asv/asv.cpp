@@ -56,7 +56,6 @@ namespace cv {
                         nThreshold1, nThreshold2);
   }
 
-  // detect and compute descriptors
   void ASV::detectAndCompute(InputArray _image,
                              InputArray _mask,
                              std::vector<KeyPoint>& keypoints,
@@ -93,7 +92,6 @@ namespace cv {
     }
   }
 
-  // compute descriptors
   void ASV::compute(InputArray _image,
                     const std::vector<KeyPoint>& keypoints,
                     OutputArray _descriptor, OutputArray _binaryDescriptors) {
@@ -160,8 +158,6 @@ namespace cv {
     }
   }
 
-  // extract descriptors at multiple scales around each keypoint
-  // Output: multiScaleDescriptors [keypoint][scale][Mat]
   void ASV::extractMultiScaleDescriptors(const Mat& image,
                                          const std::vector<KeyPoint>& keypoints,
                                          std::vector<std::vector<Mat>>& multiScaleDescriptors) {
@@ -202,7 +198,6 @@ namespace cv {
     }
   }
 
-  // First stage ASV (1M)
   void ASV::computeRealASV(const std::vector<std::vector<Mat>>& multiScaleDescriptors) {
     const int N = static_cast<int>(multiScaleDescriptors.size());
     if (N == 0) return;
@@ -229,9 +224,6 @@ namespace cv {
     }
   }
 
-  // calculate real stability vote of a multi-scale feature descriptor
-  // keypointDescriptors: array of descriptors at multiple scales for a keypoint
-  // votes: output stability votes (nThreshold1 x descriptorSize)
   void ASV::computeFeatureASV(const std::vector<Mat>& keypointDescriptors,
                               Mat& votes) const {
     if (keypointDescriptors.empty()) return;
@@ -289,7 +281,6 @@ namespace cv {
     }
   }
 
-  // Calculate absolute difference between two descriptors across all dimensions
   void ASV::computeAbsDiff(const Mat& desc1, const Mat& desc2, Mat& diffCol) const {
     CV_Assert(!desc1.empty() && !desc2.empty());
     CV_Assert(desc1.size() == desc2.size());
@@ -305,7 +296,6 @@ namespace cv {
     diffCol = diffRow.t(); // transpose to dim x 1
   }
 
-  // Convert real-valued descriptors to binary descriptor
   void ASV::computeBinaryASV() {
     binaryDescriptors.clear();
 
