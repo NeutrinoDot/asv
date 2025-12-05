@@ -1,0 +1,59 @@
+// metrics.h
+// -------------------------------------------------------------------------------------------------
+// Computes precision-recall (PR) curve, Average Precision (AP) per image pair, and mean AP (mAP).
+//
+// INPUT:
+//   For a single image pair:
+//     - vector<MatchWithLabel> matches
+//       * distance  : used as ranking score (lower distance = better match).
+//       * isCorrect : truth labels from homography.
+//
+// OUTPUT:
+//   PairMetrics:
+//     - PR curve (precision[], recall[]).
+//     - AP (scalar).
+//
+//   GlobalMetrics:
+//     - per-pair metrics.
+//     - mAP (mean of APs).
+//
+// ASSUMPTIONS:
+// - We treat smaller descriptor distances as higher confidence, and rank accordingly.
+// - AP is computed via trapezoidal integration over the PR curve constructed by sweeping
+//   over sorted matches (continuous version, not 11-point approximation).
+//
+#pragma once
+
+#include <string>
+#include <vector>
+#include "eval/matching.hpp"
+
+struct PRCurve {
+    std::vector<float> recall;
+    std::vector<float> precision;
+};
+
+struct PairMetrics {
+    std::string pairId;
+    PRCurve pr;
+    float averagePrecision = 0.0f; // AP for this pair
+};
+
+struct GlobalMetrics {
+    std::vector<PairMetrics> perPair;
+    float mAP = 0.0f; // mean AP across all pairs
+};
+
+// Compute PR curve + AP for a single image pair.
+//
+// INPUT: pairId, matches (with distance + isCorrect).
+// OUTPUT: PairMetrics with filled PRCurve and AP.
+PairMetrics computePairMetrics(const std::string& pairId,
+                               const std::vector<MatchWithLabel>& matches);
+
+// Compute mean AP across all pairs.
+//
+// INPUT: perPair (one PairMetrics per image pair).
+// OUTPUT: GlobalMetrics with mAP.
+GlobalMetrics computeGlobalMetrics(const std::vector<PairMetrics>& perPair);
+

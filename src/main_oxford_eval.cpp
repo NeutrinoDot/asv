@@ -5,29 +5,28 @@
 #include <opencv2/core.hpp>
 
 #include "dataset/oxford_dataset.hpp"
+#include "dataset/dataset_utils.hpp"
 #include "features/descriptors.hpp"
 #include "eval/matching.hpp"
-
-// TODO: add metrics (PR, AP, mAP)
+#include "metrics/metrics.h"
 
 struct EvalConfig {
   DescriptorType descriptorType = DescriptorType::SIFT;
   MatchingConfig matchingConfig;
 };
 
-static int main_test(int argc, char** argv) {
+int main(int argc, char** argv) {
   EvalConfig cfg;
   cfg.descriptorType = DescriptorType::ASV_REAL;
   cfg.matchingConfig.useRatioTest = true;
   cfg.matchingConfig.ratioThreshold = 0.8f;
   cfg.matchingConfig.epsilonPx = 3.0f;
 
-  std::vector<ImagePairSpec> imagePairSpecs = {
-      {"graf_1_2", "data/oxford/raw/graf/img1.ppm",
-                   "data/oxford/raw/graf/img2.ppm",
-                   "data/oxford/raw/graf/H1to2p"},
-                   // Add more image pairs as needed
-  };
+  std::cout << "Descriptor: ASV_REAL" << std::endl;
+  std::cout << "Ratio test: " << cfg.matchingConfig.ratioThreshold << std::endl;
+  std::cout << "Epsilon: " << cfg.matchingConfig.epsilonPx << "px\n" << std::endl;
+
+  std::vector<ImagePairSpec> imagePairSpecs = discoverOxfordPairs("data/Oxford_dataset");
 
   if (imagePairSpecs.empty()) {
     std::cerr << "No image pair specs configured. Please populate 'imagePairSpecs'." << std::endl;
@@ -40,6 +39,8 @@ static int main_test(int argc, char** argv) {
 
     auto descriptor = createDescriptor(cfg.descriptorType);
 
+    std::vector<PairMetrics> allPairMetrics;
+
     for (const auto& pair : imagePairs) {
       std::cout << "Evaluating pair: " << pair.id << std::endl;
 
@@ -51,8 +52,13 @@ static int main_test(int argc, char** argv) {
       labelMatchesWithHomography(descA, descB, pair.H_AtoB,
                                  cfg.matchingConfig.epsilonPx, matches);
 
-      // TODO: Compute PR curve + AP for this pair, then aggregate mAP.
+      auto pairMetrics = computePairMetrics(pair.id, matches);
+      allPairMetrics.push_back(pairMetrics);
+      std::cout << "  AP: " << pairMetrics.averagePrecision << std::endl;
     }
+
+    auto globalMetrics = computeGlobalMetrics(allPairMetrics);
+    std::cout << "\nmAP: " << globalMetrics.mAP << std::endl;
   }
   catch (const cv::Exception& e) {
     std::cerr << "OpenCV exception: " << e.what() << std::endl;
