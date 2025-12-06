@@ -171,7 +171,7 @@ static void DrawMatchesAndSave(const Mat& img1, const Mat& img2,
  * @pre  "kittens1.jpg" and "kittens2.jpg" exist in working directory.
  * @post "output_ASV.jpg" is written; window shown until key press.
  */
-int main(int /*argc*/, char* /*argv*/[])
+static int main_test(int /*argc*/, char* /*argv*/[])
 {
   try {
     // 1. Load input images (BGR)

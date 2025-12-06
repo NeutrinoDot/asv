@@ -8,6 +8,7 @@
 build/
 **/build/
 */CMakeLists.txt
+CMakeLists.txt
 
 # Visual Studio files
 .vs/

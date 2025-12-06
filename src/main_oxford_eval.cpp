@@ -9,7 +9,7 @@
 #include "dataset/dataset_utils.hpp"
 #include "features/descriptors.hpp"
 #include "eval/matching.hpp"
-#include "metrics/metrics.h"
+#include "metrics/metrics.hpp"
 
 struct EvalConfig {
   DescriptorType descriptorType = DescriptorType::SIFT;
@@ -17,7 +17,7 @@ struct EvalConfig {
 };
 
 // Run evaluation for a single descriptor on all image pairs
-GlobalMetrics runEvaluation(const std::vector<ImagePair>& imagePairs,
+static GlobalMetrics runEvaluation(const std::vector<ImagePair>& imagePairs,
                             const EvalConfig& cfg,
                             const std::string& descriptorName) {
   std::cout << "\n========================================" << std::endl;
@@ -69,7 +69,7 @@ GlobalMetrics runEvaluation(const std::vector<ImagePair>& imagePairs,
 }
 
 // Print comparison table
-void printComparison(const std::vector<std::string>& names,
+static void printComparison(const std::vector<std::string>& names,
                     const std::vector<GlobalMetrics>& results) {
   std::cout << "\n========================================" << std::endl;
   std::cout << "PERFORMANCE COMPARISON" << std::endl;

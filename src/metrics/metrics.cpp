@@ -1,5 +1,5 @@
 // metrics.cpp
-#include "metrics.h"
+#include "metrics/metrics.hpp"
 
 #include <algorithm>
 #include <numeric>
