@@ -180,12 +180,16 @@ int main(int argc, char** argv) {
     // Descriptors to evaluate
     std::vector<DescriptorType> descriptorTypes = {
       DescriptorType::SIFT,
+      DescriptorType::BRISK,
+      DescriptorType::ORB,
       DescriptorType::ASV_REAL,
       DescriptorType::ASV_BINARY
     };
 
     std::vector<std::string> descriptorNames = {
       "SIFT",
+      "BRISK",
+      "ORB",
       "ASV_REAL",
       "ASV_BINARY"
     };

@@ -29,6 +29,56 @@ private:
   cv::Ptr<cv::SIFT> sift_;
 };
 
+// ----------------- BRISK Descriptor Extractor ----------------
+class BriskDescriptor : public IDescriptor {
+public:
+  BriskDescriptor() {
+    brisk_ = cv::BRISK::create();
+  }
+
+  DescriptorType type() const override {
+    return DescriptorType::BRISK;
+  }
+
+  void detectAndCompute(const cv::Mat& image,
+                        DescriptorSet& out) override {
+    out.keypoints.clear();
+    out.descriptors.release();
+
+    if (image.empty()) {
+      throw std::invalid_argument("BRISKDescriptor::detectAndCompute: Input image is empty.");
+    }
+    brisk_->detectAndCompute(image, cv::noArray(), out.keypoints, out.descriptors);
+  }
+private:
+  cv::Ptr<cv::BRISK> brisk_;
+};
+
+// ----------------- ORB Descriptor Extractor ----------------
+class OrbDescriptor : public IDescriptor {
+public:
+  OrbDescriptor() {
+    orb_ = cv::ORB::create();
+  }
+
+  DescriptorType type() const override {
+    return DescriptorType::ORB;
+  }
+
+  void detectAndCompute(const cv::Mat& image,
+                        DescriptorSet& out) override {
+    out.keypoints.clear();
+    out.descriptors.release();
+
+    if (image.empty()) {
+      throw std::invalid_argument("ORBDescriptor::detectAndCompute: Input image is empty.");
+    }
+    orb_->detectAndCompute(image, cv::noArray(), out.keypoints, out.descriptors);
+  }
+private:
+  cv::Ptr<cv::ORB> orb_;
+};
+
 // ----------------- ASV Descriptor Extractor ----------------
 class AsvDescriptor : public IDescriptor {
 public:
@@ -72,6 +122,10 @@ std::unique_ptr<IDescriptor> createDescriptor(DescriptorType type, const ASVConf
   switch (type) {
   case DescriptorType::SIFT:
     return std::make_unique<SiftDescriptor>();
+  case DescriptorType::BRISK:
+    return std::make_unique<BriskDescriptor>();
+  case DescriptorType::ORB:
+    return std::make_unique<OrbDescriptor>();
   case DescriptorType::ASV_REAL:
     return std::make_unique<AsvDescriptor>(type, asvConfig);
   case DescriptorType::ASV_BINARY:
