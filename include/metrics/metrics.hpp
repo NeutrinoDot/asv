@@ -42,6 +42,8 @@ struct PairMetrics {
 struct GlobalMetrics {
     std::vector<PairMetrics> perPair;
     float mAP = 0.0f; // mean AP across all pairs
+    float avgPrecision = 0.0f; // average precision at final threshold
+    float avgRecall = 0.0f; // average recall at final threshold
     double avgTimePerPair = 0.0; // average time per pair in ms
     double totalTime = 0.0; // total time in ms
 };

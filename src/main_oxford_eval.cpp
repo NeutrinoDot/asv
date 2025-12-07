@@ -119,15 +119,17 @@ static void printComparison(const std::vector<std::string>& names,
   std::cout << "========================================" << std::endl;
   std::cout << std::left << std::setw(15) << "Descriptor" 
             << std::right << std::setw(10) << "mAP"
-            << std::setw(15) << "Avg Time (ms)"
-            << std::setw(15) << "Total (ms)" << std::endl;
-  std::cout << "--------------------------------------------------------" << std::endl;
+            << std::setw(12) << "Precision"
+            << std::setw(10) << "Recall"
+            << std::setw(15) << "Avg Time (ms)" << std::endl;
+  std::cout << "----------------------------------------------------------------" << std::endl;
 
   for (size_t i = 0; i < names.size(); ++i) {
     std::cout << std::left << std::setw(15) << names[i]
               << std::right << std::setw(10) << std::fixed << std::setprecision(4) << results[i].mAP
-              << std::setw(15) << std::fixed << std::setprecision(1) << results[i].avgTimePerPair
-              << std::setw(15) << std::fixed << std::setprecision(1) << results[i].totalTime << std::endl;
+              << std::setw(12) << std::fixed << std::setprecision(4) << results[i].avgPrecision
+              << std::setw(10) << std::fixed << std::setprecision(4) << results[i].avgRecall
+              << std::setw(15) << std::fixed << std::setprecision(1) << results[i].avgTimePerPair << std::endl;
   }
   std::cout << "========================================\n" << std::endl;
 }
@@ -162,8 +164,9 @@ int main(int argc, char** argv) {
   std::cout << "  Reprojection threshold: " << cfg.matchingConfig.epsilonPx << "px" << std::endl;
 
   try {
-    // Load dataset
-    std::vector<ImagePairSpec> specs = discoverOxfordPairs("data/Oxford_dataset");
+    // Load dataset - adjust percentage for faster testing (0.1 = 10%, 1.0 = 100%)
+    float datasetPercentage = 0.1f;
+    std::vector<ImagePairSpec> specs = discoverOxfordPairs("data/Oxford_dataset", datasetPercentage);
     if (specs.empty()) {
       std::cerr << "No image pairs found." << std::endl;
       return 1;
@@ -171,7 +174,8 @@ int main(int argc, char** argv) {
 
     DatasetLoader loader(specs);
     std::vector<ImagePair> imagePairs = loader.loadAll();
-    std::cout << "Loaded " << imagePairs.size() << " image pairs\n" << std::endl;
+    std::cout << "Loaded " << imagePairs.size() << " image pairs (" 
+              << (datasetPercentage * 100) << "% of dataset)\n" << std::endl;
 
     // Descriptors to evaluate
     std::vector<DescriptorType> descriptorTypes = {

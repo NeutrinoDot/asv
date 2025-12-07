@@ -92,16 +92,30 @@ GlobalMetrics computeGlobalMetrics(const std::vector<PairMetrics>& perPair) {
 
     if (perPair.empty()) {
         g.mAP = 0.0f;
+        g.avgPrecision = 0.0f;
+        g.avgRecall = 0.0f;
         return g;
     }
 
     float sumAP = 0.0f;
+    float sumPrecision = 0.0f;
+    float sumRecall = 0.0f;
     int count = 0;
+    
     for (const auto& m : perPair) {
         sumAP += m.averagePrecision;
+        
+        // Get final precision and recall (last point in PR curve)
+        if (!m.pr.precision.empty() && !m.pr.recall.empty()) {
+            sumPrecision += m.pr.precision.back();
+            sumRecall += m.pr.recall.back();
+        }
         ++count;
     }
 
     g.mAP = (count > 0) ? (sumAP / static_cast<float>(count)) : 0.0f;
+    g.avgPrecision = (count > 0) ? (sumPrecision / static_cast<float>(count)) : 0.0f;
+    g.avgRecall = (count > 0) ? (sumRecall / static_cast<float>(count)) : 0.0f;
+    
     return g;
 }

@@ -2,8 +2,9 @@
 
 #include <filesystem>
 #include <algorithm>
+#include <cmath>
 
-std::vector<ImagePairSpec> discoverOxfordPairs(const std::string& datasetPath) {
+std::vector<ImagePairSpec> discoverOxfordPairs(const std::string& datasetPath, float percentage) {
   std::vector<ImagePairSpec> specs;
   
   for (const auto& seqEntry : std::filesystem::directory_iterator(datasetPath)) {
@@ -31,6 +32,14 @@ std::vector<ImagePairSpec> discoverOxfordPairs(const std::string& datasetPath) {
       std::string H = seqPath + "/H1to" + std::to_string(idx) + "p";
       
       specs.push_back({pairId, img1, img2, H});
+    }
+  }
+  
+  // Apply percentage filter
+  if (percentage < 1.0f && percentage > 0.0f) {
+    size_t targetSize = static_cast<size_t>(std::ceil(specs.size() * percentage));
+    if (targetSize < specs.size()) {
+      specs.resize(targetSize);
     }
   }
   
