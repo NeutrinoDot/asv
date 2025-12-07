@@ -32,19 +32,13 @@ private:
 // ----------------- ASV Descriptor Extractor ----------------
 class AsvDescriptor : public IDescriptor {
 public:
-  explicit AsvDescriptor(DescriptorType t) : type_(t) {
-    int nScales = 5;
-    float scale_min = 0.7f;
-    float scale_max = 1.4f;
-    int nThreshold1 = 1;
-    int nThreshold2 = 1;
-
-    asv_ = cv::ASV::create(/*detectorType*/ 0,
-                           nScales,
-                           scale_min,
-                           scale_max,
-                           nThreshold1,
-                           nThreshold2);
+  explicit AsvDescriptor(DescriptorType t, const ASVConfig& cfg) : type_(t) {
+    asv_ = cv::ASV::create(cfg.detectorType,
+                           cfg.nScales,
+                           cfg.scale_min,
+                           cfg.scale_max,
+                           cfg.nThreshold1,
+                           cfg.nThreshold2);
 
     if (type_ == DescriptorType::ASV_BINARY) {
       asv_->setASVType(cv::ASV::ASVType::Binary);
@@ -74,14 +68,14 @@ private:
 };
 
 // Factory function to create descriptor extractors
-std::unique_ptr<IDescriptor> createDescriptor(DescriptorType type) {
+std::unique_ptr<IDescriptor> createDescriptor(DescriptorType type, const ASVConfig& asvConfig) {
   switch (type) {
   case DescriptorType::SIFT:
     return std::make_unique<SiftDescriptor>();
   case DescriptorType::ASV_REAL:
-    return std::make_unique<AsvDescriptor>(type);
+    return std::make_unique<AsvDescriptor>(type, asvConfig);
   case DescriptorType::ASV_BINARY:
-    return std::make_unique<AsvDescriptor>(type);
+    return std::make_unique<AsvDescriptor>(type, asvConfig);
   default:
     throw std::invalid_argument("createDescriptor: Unsupported descriptor type.");
   }

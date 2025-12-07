@@ -42,6 +42,8 @@ struct PairMetrics {
 struct GlobalMetrics {
     std::vector<PairMetrics> perPair;
     float mAP = 0.0f; // mean AP across all pairs
+    double avgTimePerPair = 0.0; // average time per pair in ms
+    double totalTime = 0.0; // total time in ms
 };
 
 // Compute PR curve + AP for a single image pair.
