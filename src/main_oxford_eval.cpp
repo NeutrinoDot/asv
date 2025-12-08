@@ -3,6 +3,7 @@
 #include <vector>
 #include <iomanip>
 #include <chrono>
+#include <fstream>
 
 #include <opencv2/core.hpp>
 
@@ -85,7 +86,30 @@ static GlobalMetrics runEvaluation(const std::vector<ImagePair>& imagePairs,
     std::cout << " " << correct << "/" << matches.size() << " correct ("
       << std::fixed << std::setprecision(1) << timeLabel << "ms)" << std::endl;
 
-    auto pairMetrics = computePairMetrics(pair.id, matches);
+    auto pairMetrics = computePairMetrics(pair.id, matches, descA, descB, pair.H_AtoB, cfg.matchingConfig.epsilonPx);
+
+    // Exporting precision recall per matching pair for graphing 
+    {
+      // File name: pr_<pairid>_<descriptor>.csv
+      // Example: pr_Bark_1_6_ASV_REAL.csv
+      std::string filename = "pr_" + pair.id + "_" + descriptorName + ".csv";
+      std::ofstream out(filename);
+
+      if (!out)
+      {
+        std::cerr << "  [Warning] Could not write PR file: " << filename << std::endl;
+      }
+      else
+      {
+        out << "recall,precision\n";
+        for (size_t k = 0; k < pairMetrics.pr.recall.size(); ++k)
+        {
+          out << pairMetrics.pr.recall[k] << ","
+            << pairMetrics.pr.precision[k] << "\n";
+        }
+      }
+    }
+
     allPairMetrics.push_back(pairMetrics);
 
     double pairTime = std::chrono::duration<double, std::milli>(t4 - t0).count();

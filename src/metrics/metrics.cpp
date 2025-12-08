@@ -3,6 +3,56 @@
 
 #include <algorithm>
 #include <numeric>
+#include <cmath>
+#include <limits>
+
+// Helper: project point using homography
+static cv::Point2f projectPoint(const cv::Point2f& pt, const cv::Mat& H) {
+    CV_Assert(H.rows == 3 && H.cols == 3 && H.type() == CV_64F);
+    
+    const double* h = H.ptr<double>(0);
+    double X = h[0] * pt.x + h[1] * pt.y + h[2];
+    double Y = h[3] * pt.x + h[4] * pt.y + h[5];
+    double W = h[6] * pt.x + h[7] * pt.y + h[8];
+    
+    if (std::abs(W) < 1e-9) {
+        return cv::Point2f(std::numeric_limits<float>::max(),
+                          std::numeric_limits<float>::max());
+    }
+    
+    return cv::Point2f(static_cast<float>(X / W), static_cast<float>(Y / W));
+}
+
+// Helper: compute ground truth correspondences
+static int computeGroundTruthCorrespondences(
+    const DescriptorSet& descA,
+    const DescriptorSet& descB,
+    const cv::Mat& H_AtoB,
+    float epsilonPx)
+{
+    int groundTruthTotal = 0;
+    
+    for (const auto& kpA : descA.keypoints) {
+        cv::Point2f projected = projectPoint(kpA.pt, H_AtoB);
+        
+        if (!std::isfinite(projected.x) || !std::isfinite(projected.y)) {
+            continue;
+        }
+        
+        for (const auto& kpB : descB.keypoints) {
+            float dx = projected.x - kpB.pt.x;
+            float dy = projected.y - kpB.pt.y;
+            float dist = std::sqrt(dx * dx + dy * dy);
+            
+            if (dist <= epsilonPx) {
+                groundTruthTotal++;
+                break;
+            }
+        }
+    }
+    
+    return groundTruthTotal;
+}
 
 // Helper: compute AP from PR curve using trapezoidal rule.
 // INPUT: prCurv.recall (monotonic non-decreasing), prCurv.precision (same length).
@@ -24,36 +74,96 @@ static float computeAPFromPR(const PRCurve& prCurve) {
     return ap;
 }
 
+// PairMetrics computePairMetrics(const std::string& pairId,
+//                                const std::vector<MatchWithLabel>& matchesInput) {
+//     PairMetrics result;
+//     result.pairId = pairId;
+
+//     if (matchesInput.empty()) {
+//         return result; // AP = 0, PR empty
+//     }
+
+//     // Copy and sort matches by ascending distance (best matches first).
+//     std::vector<MatchWithLabel> matches = matchesInput;
+//     std::sort(matches.begin(), matches.end(),
+//               [](const MatchWithLabel& a, const MatchWithLabel& b) {
+//                   return a.distance < b.distance;
+//               });
+
+//     // Count total number of positives (correct matches).
+//     int totalPositives = 0;
+//     for (const auto& m : matches) {
+//         if (m.isCorrect) {
+//             ++totalPositives;
+//         }
+//     }
+
+//     if (totalPositives == 0) {
+//         // No positives: define AP = 0, PR empty for this pair.
+//         return result;
+//     }
+
+//     // Sweep matches in rank order, computing cumulative TP/FP.
+//     std::vector<float> precision;
+//     std::vector<float> recall;
+//     precision.reserve(matches.size());
+//     recall.reserve(matches.size());
+
+//     int tp = 0;
+//     int fp = 0;
+
+//     for (size_t i = 0; i < matches.size(); ++i) {
+//         if (matches[i].isCorrect) {
+//             ++tp;
+//         } else {
+//             ++fp;
+//         }
+
+//         float prec = static_cast<float>(tp) / static_cast<float>(tp + fp);
+//         float rec  = static_cast<float>(tp) / static_cast<float>(totalPositives);
+
+//         precision.push_back(prec);
+//         recall.push_back(rec);
+//     }
+
+//     // Fill PR curve.
+//     result.pr.precision = std::move(precision);
+//     result.pr.recall = std::move(recall);
+
+//     // Compute AP from PR curve.
+//     result.averagePrecision = computeAPFromPR(result.pr);
+
+//     return result;
+// }
+
 PairMetrics computePairMetrics(const std::string& pairId,
-                               const std::vector<MatchWithLabel>& matchesInput) {
+                               const std::vector<MatchWithLabel>& matchesInput,
+                               const DescriptorSet& descA,
+                               const DescriptorSet& descB,
+                               const cv::Mat& H_AtoB,
+                               float epsilonPx) {
     PairMetrics result;
     result.pairId = pairId;
 
     if (matchesInput.empty()) {
-        return result; // AP = 0, PR empty
+        return result;
     }
 
-    // Copy and sort matches by ascending distance (best matches first).
+    // Compute ground truth total correspondences
+    int groundTruthTotal = computeGroundTruthCorrespondences(descA, descB, H_AtoB, epsilonPx);
+    
+    if (groundTruthTotal == 0) {
+        return result;
+    }
+
+    // Copy and sort matches by ascending distance
     std::vector<MatchWithLabel> matches = matchesInput;
     std::sort(matches.begin(), matches.end(),
               [](const MatchWithLabel& a, const MatchWithLabel& b) {
                   return a.distance < b.distance;
               });
 
-    // Count total number of positives (correct matches).
-    int totalPositives = 0;
-    for (const auto& m : matches) {
-        if (m.isCorrect) {
-            ++totalPositives;
-        }
-    }
-
-    if (totalPositives == 0) {
-        // No positives: define AP = 0, PR empty for this pair.
-        return result;
-    }
-
-    // Sweep matches in rank order, computing cumulative TP/FP.
+    // Sweep matches computing TP/FP with TRUE recall
     std::vector<float> precision;
     std::vector<float> recall;
     precision.reserve(matches.size());
@@ -70,17 +180,14 @@ PairMetrics computePairMetrics(const std::string& pairId,
         }
 
         float prec = static_cast<float>(tp) / static_cast<float>(tp + fp);
-        float rec  = static_cast<float>(tp) / static_cast<float>(totalPositives);
+        float rec  = static_cast<float>(tp) / static_cast<float>(groundTruthTotal);
 
         precision.push_back(prec);
         recall.push_back(rec);
     }
 
-    // Fill PR curve.
     result.pr.precision = std::move(precision);
     result.pr.recall = std::move(recall);
-
-    // Compute AP from PR curve.
     result.averagePrecision = computeAPFromPR(result.pr);
 
     return result;
