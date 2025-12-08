@@ -88,28 +88,6 @@ static GlobalMetrics runEvaluation(const std::vector<ImagePair>& imagePairs,
 
     auto pairMetrics = computePairMetrics(pair.id, matches, descA, descB, pair.H_AtoB, cfg.matchingConfig.epsilonPx);
 
-    // Exporting precision recall per matching pair for graphing 
-    {
-      // File name: pr_<pairid>_<descriptor>.csv
-      // Example: pr_Bark_1_6_ASV_REAL.csv
-      std::string filename = "pr_" + pair.id + "_" + descriptorName + ".csv";
-      std::ofstream out(filename);
-
-      if (!out)
-      {
-        std::cerr << "  [Warning] Could not write PR file: " << filename << std::endl;
-      }
-      else
-      {
-        out << "recall,precision\n";
-        for (size_t k = 0; k < pairMetrics.pr.recall.size(); ++k)
-        {
-          out << pairMetrics.pr.recall[k] << ","
-            << pairMetrics.pr.precision[k] << "\n";
-        }
-      }
-    }
-
     allPairMetrics.push_back(pairMetrics);
 
     double pairTime = std::chrono::duration<double, std::milli>(t4 - t0).count();
@@ -144,6 +122,8 @@ static void printTable1(const std::vector<std::string>& names,
   std::cout << std::left << std::setw(20) << "Descriptor"
     << std::setw(15) << "nThreshold1"
     << std::setw(12) << "mAP"
+    << std::setw(12) << "Precision"
+    << std::setw(12) << "Recall"
     << std::setw(15) << "Avg Time (ms)"
     << "\n--------------------------------------------------------------------------\n";
 
@@ -152,6 +132,8 @@ static void printTable1(const std::vector<std::string>& names,
     std::cout << std::left << std::setw(20) << names[i]
       << std::setw(15) << thrStr
       << std::setw(12) << std::fixed << std::setprecision(4) << metrics[i].mAP
+      << std::setw(12) << std::fixed << std::setprecision(4) << metrics[i].avgPrecision
+      << std::setw(12) << std::fixed << std::setprecision(4) << metrics[i].avgRecall
       << std::setw(15) << std::fixed << std::setprecision(1) << metrics[i].avgTimePerPair
       << "\n";
   }
@@ -166,12 +148,16 @@ static void printTable2(const std::vector<std::string>& names,
   std::cout << "\n==================== TABLE 2 - REAL-VALUED DESCRIPTORS ====================\n";
   std::cout << std::left << std::setw(20) << "Descriptor"
     << std::setw(12) << "mAP"
+    << std::setw(12) << "Precision"
+    << std::setw(12) << "Recall"
     << std::setw(15) << "Avg Time (ms)"
     << "\n--------------------------------------------------------------------------\n";
 
   for (size_t i = 0; i < names.size(); i++) {
     std::cout << std::left << std::setw(20) << names[i]
       << std::setw(12) << std::fixed << std::setprecision(4) << metrics[i].mAP
+      << std::setw(12) << std::fixed << std::setprecision(4) << metrics[i].avgPrecision
+      << std::setw(12) << std::fixed << std::setprecision(4) << metrics[i].avgRecall
       << std::setw(15) << std::fixed << std::setprecision(1) << metrics[i].avgTimePerPair
       << "\n";
   }
@@ -186,12 +172,16 @@ static void printTable3(const std::vector<std::string>& names,
   std::cout << "\n==================== TABLE 3 - BINARY DESCRIPTORS =========================\n";
   std::cout << std::left << std::setw(25) << "Descriptor"
     << std::setw(12) << "mAP"
+    << std::setw(12) << "Precision"
+    << std::setw(12) << "Recall"
     << std::setw(15) << "Avg Time (ms)"
     << "\n--------------------------------------------------------------------------\n";
 
   for (size_t i = 0; i < names.size(); i++) {
     std::cout << std::left << std::setw(25) << names[i]
       << std::setw(12) << std::fixed << std::setprecision(4) << metrics[i].mAP
+      << std::setw(12) << std::fixed << std::setprecision(4) << metrics[i].avgPrecision
+      << std::setw(12) << std::fixed << std::setprecision(4) << metrics[i].avgRecall
       << std::setw(15) << std::fixed << std::setprecision(1) << metrics[i].avgTimePerPair
       << "\n";
   }
@@ -388,4 +378,3 @@ int main(int argc, char** argv) {
 
   return 0;
 }
-

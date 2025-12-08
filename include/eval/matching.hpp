@@ -8,7 +8,7 @@
 #include "features/descriptors.hpp"
 
 /**
- * Configure for matching step. 
+ * Configure for matching step.
  */
 struct MatchingConfig {
   bool useRatioTest = true;

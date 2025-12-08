@@ -6,13 +6,13 @@
 
 std::vector<ImagePairSpec> discoverOxfordPairs(const std::string& datasetPath, float percentage) {
   std::vector<ImagePairSpec> specs;
-  
+
   for (const auto& seqEntry : std::filesystem::directory_iterator(datasetPath)) {
     if (!seqEntry.is_directory()) continue;
-    
+
     std::string seqName = seqEntry.path().filename().string();
     std::string seqPath = seqEntry.path().string();
-    
+
     // Find all homography files H1to*p
     std::vector<int> pairIndices;
     for (const auto& file : std::filesystem::directory_iterator(seqPath)) {
@@ -22,19 +22,19 @@ std::vector<ImagePairSpec> discoverOxfordPairs(const std::string& datasetPath, f
         pairIndices.push_back(idx);
       }
     }
-    
+
     std::sort(pairIndices.begin(), pairIndices.end());
-    
+
     for (int idx : pairIndices) {
       std::string pairId = seqName + "_1_" + std::to_string(idx);
       std::string img1 = seqPath + "/img1.ppm";
       std::string img2 = seqPath + "/img" + std::to_string(idx) + ".ppm";
       std::string H = seqPath + "/H1to" + std::to_string(idx) + "p";
-      
-      specs.push_back({pairId, img1, img2, H});
+
+      specs.push_back({ pairId, img1, img2, H });
     }
   }
-  
+
   // Apply percentage filter
   if (percentage < 1.0f && percentage > 0.0f) {
     size_t targetSize = static_cast<size_t>(std::ceil(specs.size() * percentage));
@@ -42,6 +42,6 @@ std::vector<ImagePairSpec> discoverOxfordPairs(const std::string& datasetPath, f
       specs.resize(targetSize);
     }
   }
-  
+
   return specs;
 }

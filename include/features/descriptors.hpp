@@ -46,7 +46,7 @@ public:
   virtual ~IDescriptor() = default;
   virtual DescriptorType type() const = 0;
 
-  /** 
+  /**
    * @brief Detect keypoints and compute descriptors for an image.
    * @param image The input image.
    * @param out The output DescriptorSet containing keypoints and descriptors.
@@ -56,5 +56,5 @@ public:
 };
 
 // Factory function to create descriptor for given type
-std::unique_ptr<IDescriptor> createDescriptor(DescriptorType type, 
+std::unique_ptr<IDescriptor> createDescriptor(DescriptorType type,
                                               const ASVConfig& asvConfig = ASVConfig{});

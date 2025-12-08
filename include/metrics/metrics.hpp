@@ -30,23 +30,23 @@
 #include "features/descriptors.hpp"
 
 struct PRCurve {
-    std::vector<float> recall;
-    std::vector<float> precision;
+  std::vector<float> recall;
+  std::vector<float> precision;
 };
 
 struct PairMetrics {
-    std::string pairId;
-    PRCurve pr;
-    float averagePrecision = 0.0f; // AP for this pair
+  std::string pairId;
+  PRCurve pr;
+  float averagePrecision = 0.0f; // AP for this pair
 };
 
 struct GlobalMetrics {
-    std::vector<PairMetrics> perPair;
-    float mAP = 0.0f; // mean AP across all pairs
-    float avgPrecision = 0.0f; // average precision at final threshold
-    float avgRecall = 0.0f; // average recall at final threshold
-    double avgTimePerPair = 0.0; // average time per pair in ms
-    double totalTime = 0.0; // total time in ms
+  std::vector<PairMetrics> perPair;
+  float mAP = 0.0f; // mean AP across all pairs
+  float avgPrecision = 0.0f; // average precision at final threshold
+  float avgRecall = 0.0f; // average recall at final threshold
+  double avgTimePerPair = 0.0; // average time per pair in ms
+  double totalTime = 0.0; // total time in ms
 };
 
 // Compute PR curve + AP for a single image pair.
@@ -72,4 +72,3 @@ PairMetrics computePairMetrics(const std::string& pairId,
 // INPUT: perPair (one PairMetrics per image pair).
 // OUTPUT: GlobalMetrics with mAP.
 GlobalMetrics computeGlobalMetrics(const std::vector<PairMetrics>& perPair);
-
