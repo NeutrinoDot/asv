@@ -27,6 +27,7 @@
 #include <string>
 #include <vector>
 #include "eval/matching.hpp"
+#include "features/descriptors.hpp"
 
 struct PRCurve {
     std::vector<float> recall;
@@ -54,6 +55,17 @@ struct GlobalMetrics {
 // OUTPUT: PairMetrics with filled PRCurve and AP.
 PairMetrics computePairMetrics(const std::string& pairId,
                                const std::vector<MatchWithLabel>& matches);
+
+// Compute PR curve + AP for a single image pair with ground truth total.
+//
+// INPUT: pairId, matches, descA, descB, H_AtoB, epsilonPx
+// OUTPUT: PairMetrics with filled PRCurve and AP using true recall.
+PairMetrics computePairMetrics(const std::string& pairId,
+                               const std::vector<MatchWithLabel>& matches,
+                               const DescriptorSet& descA,
+                               const DescriptorSet& descB,
+                               const cv::Mat& H_AtoB,
+                               float epsilonPx);
 
 // Compute mean AP across all pairs.
 //

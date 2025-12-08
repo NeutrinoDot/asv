@@ -3,6 +3,7 @@
 #include <vector>
 #include <iomanip>
 #include <chrono>
+#include <fstream>
 
 #include <opencv2/core.hpp>
 
@@ -12,30 +13,33 @@
 #include "eval/matching.hpp"
 #include "metrics/metrics.hpp"
 
-struct EvalConfig {
+struct EvalConfig
+{
   DescriptorType descriptorType = DescriptorType::SIFT;
   MatchingConfig matchingConfig;
   ASVConfig asvConfig;
 };
 
 // Run evaluation for a single descriptor on all image pairs
-static GlobalMetrics runEvaluation(const std::vector<ImagePair>& imagePairs,
-                            const EvalConfig& cfg,
-                            const std::string& descriptorName) {
+static GlobalMetrics runEvaluation(const std::vector<ImagePair> &imagePairs,
+                                   const EvalConfig &cfg,
+                                   const std::string &descriptorName)
+{
   std::cout << "\n========================================" << std::endl;
   std::cout << "Evaluating: " << descriptorName << std::endl;
   std::cout << "========================================" << std::endl;
-  
+
   // Print ASV config for ASV descriptors
-  if (cfg.descriptorType == DescriptorType::ASV_REAL || 
-      cfg.descriptorType == DescriptorType::ASV_BINARY) {
+  if (cfg.descriptorType == DescriptorType::ASV_REAL ||
+      cfg.descriptorType == DescriptorType::ASV_BINARY)
+  {
     std::cout << "ASV Config:" << std::endl;
     std::cout << "  nScales: " << cfg.asvConfig.nScales << std::endl;
     std::cout << "  scale_min: " << cfg.asvConfig.scale_min << std::endl;
     std::cout << "  scale_max: " << cfg.asvConfig.scale_max << std::endl;
     std::cout << "  nThreshold1: " << cfg.asvConfig.nThreshold1 << std::endl;
     std::cout << "  nThreshold2: " << cfg.asvConfig.nThreshold2 << std::endl;
-    std::cout << "  detectorType: " << cfg.asvConfig.detectorType 
+    std::cout << "  detectorType: " << cfg.asvConfig.detectorType
               << " (0=SIFT, 1=ORB, 2=BRISK)" << std::endl;
   }
 
@@ -44,35 +48,36 @@ static GlobalMetrics runEvaluation(const std::vector<ImagePair>& imagePairs,
 
   const size_t total = imagePairs.size();
   double totalTime = 0.0;
-  
-  for (size_t i = 0; i < total; ++i) {
-    const auto& pair = imagePairs[i];
-    
+
+  for (size_t i = 0; i < total; ++i)
+  {
+    const auto &pair = imagePairs[i];
+
     int percent = static_cast<int>((i + 1) * 100 / total);
     std::cout << "\n[" << std::setw(3) << percent << "%] Processing: " << pair.id << std::endl;
 
     auto t0 = std::chrono::high_resolution_clock::now();
-    
+
     std::cout << "  → Detecting keypoints in image A..." << std::flush;
     DescriptorSet descA, descB;
     descriptor->detectAndCompute(pair.imgA, descA);
     auto t1 = std::chrono::high_resolution_clock::now();
     double timeProcessingImageA = std::chrono::duration<double, std::milli>(t1 - t0).count();
-    std::cout << " " << descA.keypoints.size() << " keypoints (" 
+    std::cout << " " << descA.keypoints.size() << " keypoints ("
               << std::fixed << std::setprecision(1) << timeProcessingImageA << "ms)" << std::endl;
 
     std::cout << "  → Detecting keypoints in image B..." << std::flush;
     descriptor->detectAndCompute(pair.imgB, descB);
     auto t2 = std::chrono::high_resolution_clock::now();
     double timeProcessingImageB = std::chrono::duration<double, std::milli>(t2 - t1).count();
-    std::cout << " " << descB.keypoints.size() << " keypoints (" 
+    std::cout << " " << descB.keypoints.size() << " keypoints ("
               << std::fixed << std::setprecision(1) << timeProcessingImageB << "ms)" << std::endl;
 
     std::cout << "  → Matching descriptors..." << std::flush;
     auto matches = matchDescriptors(descA, descB, cfg.matchingConfig);
     auto t3 = std::chrono::high_resolution_clock::now();
     double timeMatch = std::chrono::duration<double, std::milli>(t3 - t2).count();
-    std::cout << " " << matches.size() << " matches (" 
+    std::cout << " " << matches.size() << " matches ("
               << std::fixed << std::setprecision(1) << timeMatch << "ms)" << std::endl;
 
     std::cout << "  → Labeling with homography..." << std::flush;
@@ -81,18 +86,43 @@ static GlobalMetrics runEvaluation(const std::vector<ImagePair>& imagePairs,
     auto t4 = std::chrono::high_resolution_clock::now();
     double timeLabel = std::chrono::duration<double, std::milli>(t4 - t3).count();
     int correct = 0;
-    for (const auto& m : matches) if (m.isCorrect) ++correct;
-    std::cout << " " << correct << "/" << matches.size() << " correct (" 
+    for (const auto &m : matches)
+      if (m.isCorrect)
+        ++correct;
+    std::cout << " " << correct << "/" << matches.size() << " correct ("
               << std::fixed << std::setprecision(1) << timeLabel << "ms)" << std::endl;
 
-    auto pairMetrics = computePairMetrics(pair.id, matches);
+    auto pairMetrics = computePairMetrics(pair.id, matches, descA, descB, pair.H_AtoB, cfg.matchingConfig.epsilonPx);
+
+    // Exporting precision recall per matching pair for graphing 
+    {
+      // File name: pr_<pairid>_<descriptor>.csv
+      // Example: pr_Bark_1_6_ASV_REAL.csv
+      std::string filename = "pr_" + pair.id + "_" + descriptorName + ".csv";
+      std::ofstream out(filename);
+
+      if (!out)
+      {
+        std::cerr << "  [Warning] Could not write PR file: " << filename << std::endl;
+      }
+      else
+      {
+        out << "recall,precision\n";
+        for (size_t k = 0; k < pairMetrics.pr.recall.size(); ++k)
+        {
+          out << pairMetrics.pr.recall[k] << ","
+              << pairMetrics.pr.precision[k] << "\n";
+        }
+      }
+    }
+
     allPairMetrics.push_back(pairMetrics);
-    
+
     double pairTime = std::chrono::duration<double, std::milli>(t4 - t0).count();
     totalTime += pairTime;
-    
-    std::cout << "AP: " << std::fixed << std::setprecision(4) 
-              << pairMetrics.averagePrecision << " | Total: " 
+
+    std::cout << "AP: " << std::fixed << std::setprecision(4)
+              << pairMetrics.averagePrecision << " | Total: "
               << std::fixed << std::setprecision(1) << pairTime << "ms" << std::endl;
   }
 
@@ -100,44 +130,48 @@ static GlobalMetrics runEvaluation(const std::vector<ImagePair>& imagePairs,
   double avgTime = totalTime / total;
   globalMetrics.avgTimePerPair = avgTime;
   globalMetrics.totalTime = totalTime;
-  
-  std::cout << "\nmAP: " << std::fixed << std::setprecision(4) 
+
+  std::cout << "\nmAP: " << std::fixed << std::setprecision(4)
             << globalMetrics.mAP << std::endl;
-  std::cout << "Average time per pair: " << std::fixed << std::setprecision(1) 
+  std::cout << "Average time per pair: " << std::fixed << std::setprecision(1)
             << avgTime << "ms" << std::endl;
-  std::cout << "Total time: " << std::fixed << std::setprecision(1) 
+  std::cout << "Total time: " << std::fixed << std::setprecision(1)
             << totalTime << "ms" << std::endl;
 
   return globalMetrics;
 }
 
 // Print comparison table
-static void printComparison(const std::vector<std::string>& names,
-                    const std::vector<GlobalMetrics>& results) {
+static void printComparison(const std::vector<std::string> &names,
+                            const std::vector<GlobalMetrics> &results)
+{
   std::cout << "\n========================================" << std::endl;
   std::cout << "PERFORMANCE COMPARISON" << std::endl;
   std::cout << "========================================" << std::endl;
-  std::cout << std::left << std::setw(15) << "Descriptor" 
+  std::cout << std::left << std::setw(15) << "Descriptor"
             << std::right << std::setw(10) << "mAP"
             << std::setw(12) << "Precision"
             << std::setw(10) << "Recall"
             << std::setw(15) << "Avg Time (ms)" << std::endl;
   std::cout << "----------------------------------------------------------------" << std::endl;
 
-  for (size_t i = 0; i < names.size(); ++i) {
+  for (size_t i = 0; i < names.size(); ++i)
+  {
     std::cout << std::left << std::setw(15) << names[i]
               << std::right << std::setw(10) << std::fixed << std::setprecision(4) << results[i].mAP
               << std::setw(12) << std::fixed << std::setprecision(4) << results[i].avgPrecision
               << std::setw(10) << std::fixed << std::setprecision(4) << results[i].avgRecall
               << std::setw(15) << std::fixed << std::setprecision(1) << results[i].avgTimePerPair << std::endl;
   }
-  std::cout << "========================================\n" << std::endl;
+  std::cout << "========================================\n"
+            << std::endl;
 }
 
-int main(int argc, char** argv) {
+int main(int argc, char **argv)
+{
   // Configuration
   EvalConfig cfg;
-  
+
   // ASV configuration
   cfg.asvConfig.nScales = 10;
   cfg.asvConfig.scale_min = 1.0f / 6.0f;
@@ -145,7 +179,7 @@ int main(int argc, char** argv) {
   cfg.asvConfig.nThreshold1 = 3;
   cfg.asvConfig.nThreshold2 = 3;
   cfg.asvConfig.detectorType = 0; // 0=SIFT, 1=ORB, 2=BRISK
-  
+
   // Matching configuration
   cfg.matchingConfig.useRatioTest = true;
   cfg.matchingConfig.ratioThreshold = 0.8f;
@@ -163,40 +197,42 @@ int main(int argc, char** argv) {
   std::cout << "  Ratio test threshold: " << cfg.matchingConfig.ratioThreshold << std::endl;
   std::cout << "  Reprojection threshold: " << cfg.matchingConfig.epsilonPx << "px" << std::endl;
 
-  try {
+  try
+  {
     // Load dataset - adjust percentage for faster testing (0.1 = 10%, 1.0 = 100%)
-    float datasetPercentage = 0.1f;
+    float datasetPercentage = 1.0f;
     std::vector<ImagePairSpec> specs = discoverOxfordPairs("data/Oxford_dataset", datasetPercentage);
-    if (specs.empty()) {
+    if (specs.empty())
+    {
       std::cerr << "No image pairs found." << std::endl;
       return 1;
     }
 
     DatasetLoader loader(specs);
     std::vector<ImagePair> imagePairs = loader.loadAll();
-    std::cout << "Loaded " << imagePairs.size() << " image pairs (" 
-              << (datasetPercentage * 100) << "% of dataset)\n" << std::endl;
+    std::cout << "Loaded " << imagePairs.size() << " image pairs ("
+              << (datasetPercentage * 100) << "% of dataset)\n"
+              << std::endl;
 
     // Descriptors to evaluate
     std::vector<DescriptorType> descriptorTypes = {
-      DescriptorType::SIFT,
-      //DescriptorType::BRISK,
-      //DescriptorType::ORB,
-      DescriptorType::ASV_REAL,
-      DescriptorType::ASV_BINARY
-    };
+        DescriptorType::SIFT,
+        DescriptorType::BRISK,
+        DescriptorType::ORB,
+        DescriptorType::ASV_REAL,
+        DescriptorType::ASV_BINARY};
 
     std::vector<std::string> descriptorNames = {
-      "SIFT",
-      //"BRISK",
-      //"ORB",
-      "ASV_REAL",
-      "ASV_BINARY"
-    };
+        "SIFT",
+        "BRISK",
+        "ORB",
+        "ASV_REAL",
+        "ASV_BINARY"};
 
     // Run evaluation for each descriptor
     std::vector<GlobalMetrics> results;
-    for (size_t i = 0; i < descriptorTypes.size(); ++i) {
+    for (size_t i = 0; i < descriptorTypes.size(); ++i)
+    {
       cfg.descriptorType = descriptorTypes[i];
       auto metrics = runEvaluation(imagePairs, cfg, descriptorNames[i]);
       results.push_back(metrics);
@@ -204,11 +240,14 @@ int main(int argc, char** argv) {
 
     // Print comparison
     printComparison(descriptorNames, results);
-
-  } catch (const cv::Exception& e) {
+  }
+  catch (const cv::Exception &e)
+  {
     std::cerr << "OpenCV exception: " << e.what() << std::endl;
     return 1;
-  } catch (const std::exception& e) {
+  }
+  catch (const std::exception &e)
+  {
     std::cerr << "Exception: " << e.what() << std::endl;
     return 1;
   }
