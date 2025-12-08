@@ -28,6 +28,7 @@ CMakeLists.txt
 # VS metadata
 cpp.hint
 OpenCV_Debug.props
+OpenCV_Release.props
 
 # Build directories
 x64/
