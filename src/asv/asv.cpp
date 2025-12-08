@@ -5,6 +5,7 @@
 #include <numeric>
 #include <algorithm>
 #include <opencv2/features2d.hpp>
+#include <opencv2/xfeatures2d.hpp>
 
 #include <util/asv_utils.hpp>
 
@@ -33,6 +34,11 @@ namespace cv {
       detector = BRISK::create();
       descriptorSize = 64;
       descriptorType = CV_8U;
+      break;
+    case 3: // SURF
+      detector = xfeatures2d::SURF::create();
+      descriptorSize = 64;
+      descriptorType = CV_32F;
       break;
     default: // 0 or other -> SIFT
       detector = SIFT::create();

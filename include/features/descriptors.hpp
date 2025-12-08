@@ -5,12 +5,14 @@
 #include <vector>
 #include <opencv2/core.hpp>
 #include <opencv2/features2d.hpp>
+#include <opencv2/xfeatures2d.hpp>
 
 /**
  * Descriptor types supported.
  */
 enum class DescriptorType {
   SIFT,
+  SURF,
   ASV_REAL,
   ASV_BINARY,
   ORB,

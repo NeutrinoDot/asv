@@ -79,6 +79,31 @@ private:
   cv::Ptr<cv::ORB> orb_;
 };
 
+// ----------------- SURF Descriptor Extractor ----------------
+class SurfDescriptor : public IDescriptor {
+public:
+  SurfDescriptor() {
+    surf_ = cv::xfeatures2d::SURF::create();
+  }
+
+  DescriptorType type() const override {
+    return DescriptorType::SURF;
+  }
+
+  void detectAndCompute(const cv::Mat& image,
+                        DescriptorSet& out) override {
+    out.keypoints.clear();
+    out.descriptors.release();
+
+    if (image.empty()) {
+      throw std::invalid_argument("SIFTDescriptor::detectAndCompute: Input image is empty.");
+    }
+    surf_->detectAndCompute(image, cv::noArray(), out.keypoints, out.descriptors);
+  }
+private:
+  cv::Ptr<cv::xfeatures2d::SURF> surf_;
+};
+
 // ----------------- ASV Descriptor Extractor ----------------
 class AsvDescriptor : public IDescriptor {
 public:
@@ -126,6 +151,8 @@ std::unique_ptr<IDescriptor> createDescriptor(DescriptorType type, const ASVConf
     return std::make_unique<BriskDescriptor>();
   case DescriptorType::ORB:
     return std::make_unique<OrbDescriptor>();
+  case DescriptorType::SURF:
+    return std::make_unique<SurfDescriptor>();
   case DescriptorType::ASV_REAL:
     return std::make_unique<AsvDescriptor>(type, asvConfig);
   case DescriptorType::ASV_BINARY:

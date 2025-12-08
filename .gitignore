@@ -55,4 +55,4 @@ out/
 temp/
 tmp/
 
-output/
+*.jpg

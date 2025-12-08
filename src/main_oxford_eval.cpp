@@ -206,7 +206,7 @@ int main(int argc, char** argv) {
   cfg.matchingConfig.epsilonPx = 3.0f;
 
   // Load Oxford dataset
-  float datasetPercentage = 0.05f;
+  float datasetPercentage = 0.5f;
   auto specs = discoverOxfordPairs("data/Oxford_dataset", datasetPercentage);
   if (specs.empty()) {
     std::cerr << "No image pairs found.\n";
@@ -220,7 +220,8 @@ int main(int argc, char** argv) {
   std::vector<std::string> baselineNames = {
     "SIFT",
     "ORB",
-    "BRISK"
+    "BRISK",
+    "SURF"
   };
 
   cfg.descriptorType = DescriptorType::SIFT;
@@ -236,6 +237,11 @@ int main(int argc, char** argv) {
   cfgBRISK.descriptorType = DescriptorType::BRISK;
   cfgBRISK.asvConfig.detectorType = 2;
   GlobalMetrics brisk_metrics = runEvaluation(imagePairs, cfgBRISK, "BRISK");
+
+  EvalConfig cfgSURF = cfg;
+  cfgSURF.descriptorType = DescriptorType::SURF;
+  cfgSURF.asvConfig.detectorType = 3;
+  GlobalMetrics surf_metrics = runEvaluation(imagePairs, cfgSURF, "SURF");
 
   // ==========================   TABLE 1   ================================
   // SIFT + ASV-SIFT threshold sweep (Real-valued descriptors)
@@ -297,9 +303,11 @@ int main(int argc, char** argv) {
   //
   // Entries:
   //  - SIFT
+  //  - SURF
   //  - ASV_SIFT_REAL
   //  - ASV_ORB_REAL
   //  - ASV_BRISK_REAL
+  //  - ASV_SURF_REAL
   //
   // All ASV use:
   //  - nThreshold1 = bestT1 (from Table 1)
@@ -307,26 +315,29 @@ int main(int argc, char** argv) {
   // ========================================================================
   std::vector<std::string> table2Names = {
       "SIFT",
+      "SURF",
       "ASV_SIFT_REAL",
       "ASV_ORB_REAL",
-      "ASV_BRISK_REAL"
+      "ASV_BRISK_REAL",
+      "ASV_SURF_REAL"
   };
 
   std::vector<GlobalMetrics> table2Results(table2Names.size());
 
   // --- SIFT baseline ---
   table2Results[0] = sift_metrics;
-  table2Results[1] = bestASVMetrics;
+  table2Results[1] = surf_metrics;
+  table2Results[2] = bestASVMetrics;
 
-  for (int i = 2; i <= 3; i++) {
+  for (int i = 3; i <= 5; i++) {
     EvalConfig cfgASV = cfg;
     cfgASV.descriptorType = DescriptorType::ASV_REAL;
     cfgASV.asvConfig.nThreshold1 = bestT1;
     cfgASV.asvConfig.nThreshold2 = defaultT2;
 
     // Map row index to detector type:
-    // 1 → SIFT (0), 2 → ORB (1), 3 → BRISK (2)
-    cfgASV.asvConfig.detectorType = (i - 1);
+    // 2 → SIFT (0), 3 → ORB (1), 4 → BRISK (2), 5 → SURF (3)
+    cfgASV.asvConfig.detectorType = (i - 2);
 
     table2Results[i] = runEvaluation(imagePairs, cfgASV, table2Names[i]);
   }
@@ -335,11 +346,12 @@ int main(int argc, char** argv) {
   // Binary descriptor comparison (parallel)
   //
   // Entries:
-  //  - ORB (native)
-  //  - BRISK (native)
+  //  - ORB
+  //  - BRISK
   //  - ASV_SIFT_BINARY
   //  - ASV_ORB_BINARY
   //  - ASV_BRISK_BINARY
+  //  - ASV_SURF_BINARY
   //
   // All ASV_BINARY use:
   //  - nThreshold1 = bestT1 (from Table 1)
@@ -350,7 +362,8 @@ int main(int argc, char** argv) {
       "BRISK",
       "ASV_SIFT_BINARY",
       "ASV_ORB_BINARY",
-      "ASV_BRISK_BINARY"
+      "ASV_BRISK_BINARY",
+      "ASV_SURF_BINARY"
   };
 
   std::vector<GlobalMetrics> table3Results(table3Names.size());
@@ -359,14 +372,14 @@ int main(int argc, char** argv) {
   table3Results[0] = orb_metrics;
   table3Results[1] = brisk_metrics;
 
-  for (int i = 2; i <= 4; i++) {
+  for (int i = 2; i <= 5; i++) {
     EvalConfig cfgASV = cfg;
     cfgASV.descriptorType = DescriptorType::ASV_BINARY;
     cfgASV.asvConfig.nThreshold1 = bestT1;
     cfgASV.asvConfig.nThreshold2 = defaultT2;
 
     // Map rows to detector types:
-    // 2 → SIFT (0), 3 → ORB (1), 4 → BRISK (2)
+    // 2 → SIFT (0), 3 → ORB (1), 4 → BRISK (2), 5 → SURF (3)
     cfgASV.asvConfig.detectorType = (i - 2);
 
     table3Results[i] = runEvaluation(imagePairs, cfgASV, table3Names[i]);
