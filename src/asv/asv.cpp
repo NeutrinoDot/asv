@@ -126,7 +126,7 @@ namespace cv {
       for (int i = 0; i < N; ++i) {
         const Mat& desc = realDescriptors[i];
         if (desc.empty()) continue;
-        CV_Assert(desc.rows == 1 && desc.cols == descriptorSize);
+        CV_Assert(desc.rows == nThreshold1 && desc.cols == descriptorSize);
         CV_Assert(desc.type() == CV_32F);
         desc.row(0).copyTo(realMat.row(i));
       }
@@ -320,7 +320,7 @@ namespace cv {
         continue;
       }
 
-      CV_Assert(real.rows == 1 && real.cols == descriptorSize && real.type() == CV_32F);
+      CV_Assert(real.rows == nThreshold1 && real.cols == descriptorSize && real.type() == CV_32F);
 
       Mat bin = Mat::zeros(1, binaryDescriptorSize, CV_8U);
       for (int k = 0; k < nThreshold2; ++k) {

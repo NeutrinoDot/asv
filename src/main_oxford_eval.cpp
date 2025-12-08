@@ -139,11 +139,11 @@ int main(int argc, char** argv) {
   EvalConfig cfg;
   
   // ASV configuration
-  cfg.asvConfig.nScales = 5;
-  cfg.asvConfig.scale_min = 0.7f;
-  cfg.asvConfig.scale_max = 1.4f;
-  cfg.asvConfig.nThreshold1 = 1;
-  cfg.asvConfig.nThreshold2 = 1;
+  cfg.asvConfig.nScales = 10;
+  cfg.asvConfig.scale_min = 1.0f / 6.0f;
+  cfg.asvConfig.scale_max = 3.0f;
+  cfg.asvConfig.nThreshold1 = 3;
+  cfg.asvConfig.nThreshold2 = 3;
   cfg.asvConfig.detectorType = 0; // 0=SIFT, 1=ORB, 2=BRISK
   
   // Matching configuration
@@ -180,16 +180,16 @@ int main(int argc, char** argv) {
     // Descriptors to evaluate
     std::vector<DescriptorType> descriptorTypes = {
       DescriptorType::SIFT,
-      DescriptorType::BRISK,
-      DescriptorType::ORB,
+      //DescriptorType::BRISK,
+      //DescriptorType::ORB,
       DescriptorType::ASV_REAL,
       DescriptorType::ASV_BINARY
     };
 
     std::vector<std::string> descriptorNames = {
       "SIFT",
-      "BRISK",
-      "ORB",
+      //"BRISK",
+      //"ORB",
       "ASV_REAL",
       "ASV_BINARY"
     };

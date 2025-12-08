@@ -203,11 +203,11 @@ static int main_test(int /*argc*/, char* /*argv*/[])
 
     // 4. Create ASV descriptor (SIFT baseline)
     int detectorType = 0;     // 0=SIFT, 1=ORB, 2=BRISK
-    int nScales = 5;
-    float scale_min = 0.7f;
-    float scale_max = 1.4f;
-    int nThreshold1 = 1;   // stage-1
-    int nThreshold2 = 1;   // stage-2
+    int nScales = 10;
+    float scale_min = 1.0f / 6.0f;
+    float scale_max = 3.0f;
+    int nThreshold1 = 3;   // stage-1
+    int nThreshold2 = 3;   // stage-2
 
     Ptr<ASV> asv = ASV::create(detectorType,
                                nScales,
