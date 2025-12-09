@@ -42,6 +42,7 @@ static GlobalMetrics runEvaluation(const std::vector<ImagePair>& imagePairs,
 
   auto descriptor = createDescriptor(cfg.descriptorType, cfg.asvConfig);
   std::vector<PairMetrics> allPairMetrics;
+  int bytesPerDescriptor = 0;
 
   const int total = static_cast<int>(imagePairs.size());
   double totalTime = 0.0;
@@ -61,6 +62,14 @@ static GlobalMetrics runEvaluation(const std::vector<ImagePair>& imagePairs,
     double timeProcessingImageA = std::chrono::duration<double, std::milli>(t1 - t0).count();
     std::cout << " " << descA.keypoints.size() << " keypoints ("
       << std::fixed << std::setprecision(1) << timeProcessingImageA << "ms)" << std::endl;
+
+    if (bytesPerDescriptor == 0 && !descA.descriptors.empty()) {
+      const cv::Mat& d = descA.descriptors;
+      // bytes per descriptor row = elemSize (bytes per element) * number of columns
+      bytesPerDescriptor = static_cast<int>(d.elemSize() * d.cols);
+      std::cout << " Descriptor dim: " << d.cols
+        << ", bytes/descriptor: " << bytesPerDescriptor << std::endl;
+    }
 
     std::cout << " -> Detecting keypoints in image B..." << std::flush;
     descriptor->detectAndCompute(pair.imgB, descB);
@@ -102,6 +111,7 @@ static GlobalMetrics runEvaluation(const std::vector<ImagePair>& imagePairs,
   double avgTime = totalTime / total;
   globalMetrics.avgTimePerPair = avgTime;
   globalMetrics.totalTime = totalTime;
+  globalMetrics.bytesPerDescriptor = bytesPerDescriptor;
 
   std::cout << "\nmAP: " << std::fixed << std::setprecision(4)
     << globalMetrics.mAP << std::endl;
@@ -121,9 +131,8 @@ static void printTable1(const std::vector<std::string>& names,
   std::cout << "\n==================== TABLE 1 - ASV-SIFT THRESHOLD SWEEP ====================\n";
   std::cout << std::left << std::setw(20) << "Descriptor"
     << std::setw(15) << "nThreshold1"
+    << std::setw(15) << "Bytes/desc"
     << std::setw(12) << "mAP"
-    << std::setw(12) << "Precision"
-    << std::setw(12) << "Recall"
     << std::setw(15) << "Avg Time (ms)"
     << "\n--------------------------------------------------------------------------\n";
 
@@ -131,9 +140,8 @@ static void printTable1(const std::vector<std::string>& names,
     std::string thrStr = (threshValues[i] < 0 ? "-" : std::to_string(threshValues[i]));
     std::cout << std::left << std::setw(20) << names[i]
       << std::setw(15) << thrStr
+      << std::setw(15) << metrics[i].bytesPerDescriptor
       << std::setw(12) << std::fixed << std::setprecision(4) << metrics[i].mAP
-      << std::setw(12) << std::fixed << std::setprecision(4) << metrics[i].avgPrecision
-      << std::setw(12) << std::fixed << std::setprecision(4) << metrics[i].avgRecall
       << std::setw(15) << std::fixed << std::setprecision(1) << metrics[i].avgTimePerPair
       << "\n";
   }
@@ -147,17 +155,15 @@ static void printTable2(const std::vector<std::string>& names,
 {
   std::cout << "\n==================== TABLE 2 - REAL-VALUED DESCRIPTORS ====================\n";
   std::cout << std::left << std::setw(20) << "Descriptor"
+    << std::setw(15) << "Bytes/desc"
     << std::setw(12) << "mAP"
-    << std::setw(12) << "Precision"
-    << std::setw(12) << "Recall"
     << std::setw(15) << "Avg Time (ms)"
     << "\n--------------------------------------------------------------------------\n";
 
   for (size_t i = 0; i < names.size(); i++) {
     std::cout << std::left << std::setw(20) << names[i]
+      << std::setw(15) << metrics[i].bytesPerDescriptor
       << std::setw(12) << std::fixed << std::setprecision(4) << metrics[i].mAP
-      << std::setw(12) << std::fixed << std::setprecision(4) << metrics[i].avgPrecision
-      << std::setw(12) << std::fixed << std::setprecision(4) << metrics[i].avgRecall
       << std::setw(15) << std::fixed << std::setprecision(1) << metrics[i].avgTimePerPair
       << "\n";
   }
@@ -171,17 +177,15 @@ static void printTable3(const std::vector<std::string>& names,
 {
   std::cout << "\n==================== TABLE 3 - BINARY DESCRIPTORS =========================\n";
   std::cout << std::left << std::setw(25) << "Descriptor"
+    << std::setw(15) << "Bytes/desc"
     << std::setw(12) << "mAP"
-    << std::setw(12) << "Precision"
-    << std::setw(12) << "Recall"
     << std::setw(15) << "Avg Time (ms)"
     << "\n--------------------------------------------------------------------------\n";
 
   for (size_t i = 0; i < names.size(); i++) {
-    std::cout << std::left << std::setw(25) << names[i]
+    std::cout << std::left << std::setw(25) << names[i] 
+      << std::setw(15) << metrics[i].bytesPerDescriptor
       << std::setw(12) << std::fixed << std::setprecision(4) << metrics[i].mAP
-      << std::setw(12) << std::fixed << std::setprecision(4) << metrics[i].avgPrecision
-      << std::setw(12) << std::fixed << std::setprecision(4) << metrics[i].avgRecall
       << std::setw(15) << std::fixed << std::setprecision(1) << metrics[i].avgTimePerPair
       << "\n";
   }
@@ -206,7 +210,7 @@ int main(int argc, char** argv) {
   cfg.matchingConfig.epsilonPx = 3.0f;
 
   // Load Oxford dataset
-  float datasetPercentage = 0.5f;
+  float datasetPercentage = 1.0f;
   auto specs = discoverOxfordPairs("data/Oxford_dataset", datasetPercentage);
   if (specs.empty()) {
     std::cerr << "No image pairs found.\n";

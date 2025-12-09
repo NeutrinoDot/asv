@@ -27,26 +27,23 @@ namespace cv {
     switch (detectorType) {
     case 1: // ORB
       detector = ORB::create();
-      descriptorSize = 32;
       descriptorType = CV_8U;
       break;
     case 2: // BRISK
       detector = BRISK::create();
-      descriptorSize = 64;
       descriptorType = CV_8U;
       break;
     case 3: // SURF
       detector = xfeatures2d::SURF::create();
-      descriptorSize = 64;
       descriptorType = CV_32F;
       break;
     default: // 0 or other -> SIFT
       detector = SIFT::create();
-      descriptorSize = 128;
       descriptorType = CV_32F;
       break;
     }
 
+    descriptorSize = detector->descriptorSize();
     binaryDescriptorSize = descriptorSize * nThreshold2;
 
     realDescriptors.clear();

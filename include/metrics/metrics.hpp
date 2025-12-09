@@ -47,14 +47,8 @@ struct GlobalMetrics {
   float avgRecall = 0.0f; // average recall at final threshold
   double avgTimePerPair = 0.0; // average time per pair in ms
   double totalTime = 0.0; // total time in ms
+  int bytesPerDescriptor = 0; // Memory cost per descriptor
 };
-
-// Compute PR curve + AP for a single image pair.
-//
-// INPUT: pairId, matches (with distance + isCorrect).
-// OUTPUT: PairMetrics with filled PRCurve and AP.
-PairMetrics computePairMetrics(const std::string& pairId,
-                               const std::vector<MatchWithLabel>& matches);
 
 // Compute PR curve + AP for a single image pair with ground truth total.
 //
