@@ -224,11 +224,27 @@ PRCurve computePRCurve(const vector<DMatch>& matches,
 void savePRCurve(const PRCurve& curve, const string& filename) {
     ofstream out(filename);
     out << "Recall Precision\n";
-    // out << "# AP = " << curve.ap << "\n";
+    out << "# AP = " << curve.ap << "\n";
     
-    for (size_t i = 0; i < curve.recalls.size(); i += 10) {
-        out << curve.recalls[i] << " " 
-            << curve.precisions[i] << "\n";
+    size_t n = curve.recalls.size();
+    if (n == 0) {
+        out.close();
+        return;
+    }
+    
+    // Sample 15 points evenly distributed
+    const int target_points = 15;
+    if (n <= target_points) {
+        // If we have fewer than target points, output all
+        for (size_t i = 0; i < n; i++) {
+            out << curve.recalls[i] << " " << curve.precisions[i] << "\n";
+        }
+    } else {
+        // Sample evenly across the range
+        for (int i = 0; i < target_points; i++) {
+            size_t idx = (i * (n - 1)) / (target_points - 1);
+            out << curve.recalls[idx] << " " << curve.precisions[idx] << "\n";
+        }
     }
     out.close();
 }
@@ -282,12 +298,30 @@ static void DrawMatchesAndSave(const Mat& img1, const Mat& img2,
  * @pre  "kittens1.jpg" and "kittens2.jpg" exist in working directory.
  * @post "output_ASV.jpg" is written; window shown until key press.
  */
-int main(int /*argc*/, char* /*argv*/[])
+int main(int argc, char* argv[])
 {
   try {
+    // Parse command line arguments
+    string img1_path = "data/Oxford_dataset/bark/img1.ppm";
+    string img2_path = "data/Oxford_dataset/bark/img6.ppm";
+    string homography_path = "data/Oxford_dataset/bark/H1to6p";
+    
+    if (argc >= 4) {
+      img1_path = argv[1];
+      img2_path = argv[2];
+      homography_path = argv[3];
+      cout << "Using provided paths:\n";
+      cout << "  Image 1: " << img1_path << "\n";
+      cout << "  Image 2: " << img2_path << "\n";
+      cout << "  Homography: " << homography_path << "\n";
+    } else {
+      cout << "Usage: " << argv[0] << " <img1> <img2> <homography>\n";
+      cout << "Using default: bark img1 to img6\n";
+    }
+    
     // 1. Load input images (BGR)
-    Mat img1 = LoadImageOrThrow("data/Oxford_dataset/bark/img1.ppm");
-    Mat img2 = LoadImageOrThrow("data/Oxford_dataset/bark/img6.ppm");
+    Mat img1 = LoadImageOrThrow(img1_path);
+    Mat img2 = LoadImageOrThrow(img2_path);
 
     cout << "Loaded img1.ppm and img6.ppm\n";
 
@@ -389,50 +423,62 @@ int main(int /*argc*/, char* /*argv*/[])
     cout << "Good binary real ASV matches after ratio test: " << good_asv_bin.size() << '\n';
 
     // 8. Load ground-truth homography
-    Mat H = loadHomography("data/Oxford_dataset/bark/H1to6p");
+    Mat H = loadHomography(homography_path);
+
+    // Extract category name from path
+    string category = "unknown";
+    size_t last_slash = img1_path.find_last_of("/\\");
+    if (last_slash != string::npos) {
+      size_t second_last_slash = img1_path.find_last_of("/\\", last_slash - 1);
+      if (second_last_slash != string::npos) {
+        category = img1_path.substr(second_last_slash + 1, last_slash - second_last_slash - 1);
+      }
+    }
+    cout << "Category: " << category << endl;
 
     vector<bool> is_sift_correct = verifyMatches(kpts1, kpts2, good_sift, H);
     PRCurve sift_curve = computePRCurve(good_sift, is_sift_correct);
-    cout << "AP = " << sift_curve.ap << endl;
-    savePRCurve(sift_curve, "eval/pr/output/pr_boat_sift.txt");
+    cout << "SIFT AP = " << sift_curve.ap << endl;
+    savePRCurve(sift_curve, "eval/pr/output/pr_" + category + "_sift.txt");
 
     vector<bool> is_asv_real_correct = verifyMatches(kpts1, kpts2, good_asv_real, H);
     PRCurve asv_real_curve = computePRCurve(good_asv_real, is_asv_real_correct);
-    cout << "AP = " << asv_real_curve.ap << endl;
-    savePRCurve(asv_real_curve, "eval/pr/output/pr_boat_asv_real.txt");
+    cout << "ASV Real AP = " << asv_real_curve.ap << endl;
+    savePRCurve(asv_real_curve, "eval/pr/output/pr_" + category + "_asv_real.txt");
 
     vector<bool> is_asv_bin_correct = verifyMatches(kpts1, kpts2, good_asv_bin, H);
     PRCurve asv_bin_curve = computePRCurve(good_asv_bin, is_asv_bin_correct);
-    cout << "AP = " << asv_bin_curve.ap << endl;
-    savePRCurve(asv_bin_curve, "eval/pr/output/pr_boat_asv_bin.txt");
+    cout << "ASV Binary AP = " << asv_bin_curve.ap << endl;
+    savePRCurve(asv_bin_curve, "eval/pr/output/pr_" + category + "_asv_bin.txt");
     
-    // 7. Draw matches and save montage
-
+    // 7. Draw matches and save montage (commented out for faster execution)
+    /*
     Mat montage_sift;
     DrawMatchesAndSave(img1, img2,
                        kpts1, kpts2,
                        good_sift,
                        "SIFT Matches",
-                       "eval/pr/output/output_SIFT.jpg",
+                       "eval/pr/output/output_" + category + "_SIFT.jpg",
                        montage_sift);
     Mat montage_asv_real;
     DrawMatchesAndSave(img1, img2,
                        kpts1, kpts2,
                        good_asv_real,
                        "ASV Real Matches",
-                       "eval/pr/output/output_ASV_Real.jpg",
+                       "eval/pr/output/output_" + category + "_ASV_Real.jpg",
                        montage_asv_real);
     Mat montage_asv_bin;
     DrawMatchesAndSave(img1, img2,
                        kpts1, kpts2,
                        good_asv_bin,
                        "ASV Binary Matches",
-                       "eval/pr/output/output_ASV_Binary.jpg",
+                       "eval/pr/output/output_" + category + "_ASV_Binary.jpg",
                        montage_asv_bin);
 
     cout << "Press any key to exit..." << endl;
     waitKey(0);
     destroyAllWindows();
+    */
     return 0;
   }
   catch (const exception& ex) {
