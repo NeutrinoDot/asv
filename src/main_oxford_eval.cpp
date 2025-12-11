@@ -40,6 +40,14 @@ static GlobalMetrics runEvaluation(const std::vector<ImagePair>& imagePairs,
       << " (0=SIFT, 1=ORB, 2=BRISK)" << std::endl;
   }
 
+  // Create ap_pairs directory and open output file
+  system("mkdir -p ap_pairs");
+  std::string apFilename = "ap_pairs/" + descriptorName + ".dat";
+  std::ofstream apFile(apFilename);
+  if (apFile.is_open()) {
+    apFile << "pairId AP descriptorName" << std::endl;
+  }
+
   auto descriptor = createDescriptor(cfg.descriptorType, cfg.asvConfig);
   std::vector<PairMetrics> allPairMetrics;
   int bytesPerDescriptor = 0;
@@ -98,6 +106,14 @@ static GlobalMetrics runEvaluation(const std::vector<ImagePair>& imagePairs,
     auto pairMetrics = computePairMetrics(pair.id, matches, descA, descB, pair.H_AtoB, cfg.matchingConfig.epsilonPx);
 
     allPairMetrics.push_back(pairMetrics);
+
+    // Write AP to file
+    if (apFile.is_open()) {
+      apFile << std::fixed << std::setprecision(4);
+      apFile << pairMetrics.pairId << " "
+             << pairMetrics.averagePrecision << " "
+             << descriptorName << std::endl;
+    }
 
     double pairTime = std::chrono::duration<double, std::milli>(t4 - t0).count();
     totalTime += pairTime;
