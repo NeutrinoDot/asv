@@ -142,7 +142,7 @@ private:
   cv::Ptr<cv::ASV> asv_;
 };
 
-// Factory function to create descriptor extractors
+// ----------------- Descriptor Factory Function ----------------
 std::unique_ptr<IDescriptor> createDescriptor(DescriptorType type, const ASVConfig& asvConfig) {
   switch (type) {
   case DescriptorType::SIFT:

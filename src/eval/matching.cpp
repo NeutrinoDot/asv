@@ -4,28 +4,7 @@
 #include <opencv2/features2d.hpp>
 #include <cmath>
 #include <limits>
-
-//Project a point (x, y, 1) in image A to image B using H_AtoB.
-static cv::Point2f projectPoint(const cv::Point2f& ptA, const cv::Mat& H_AtoB) {
-  CV_Assert(H_AtoB.rows == 3 && H_AtoB.cols == 3);
-  CV_Assert(H_AtoB.type() == CV_64F);
-
-  double x = ptA.x;
-  double y = ptA.y;
-
-  const double* h = H_AtoB.ptr<double>(0);
-  double X = h[0] * x + h[1] * y + h[2];
-  double Y = h[3] * x + h[4] * y + h[5];
-  double W = h[6] * x + h[7] * y + h[8];
-
-  if (std::abs(W) < 1e-9) {
-    return cv::Point2f(std::numeric_limits<float>::max(),
-                       std::numeric_limits<float>::max());
-  }
-
-  return cv::Point2f(static_cast<float>(X / W),
-                     static_cast<float>(Y / W));
-}
+#include <util/eval_utils.hpp>
 
 std::vector<MatchWithLabel> matchDescriptors(const DescriptorSet& descA,
                                              const DescriptorSet& descB,
@@ -36,7 +15,10 @@ std::vector<MatchWithLabel> matchDescriptors(const DescriptorSet& descA,
     return result;
   }
 
-  cv::BFMatcher matcher(cv::NORM_L2, /*crossCheck*/ false);
+  CV_Assert(descA.descriptors.type() == descB.descriptors.type());
+  int normType = inferNormType(descA.descriptors);
+
+  cv::BFMatcher matcher(normType, /*crossCheck*/ false);
 
   if (config.useRatioTest) {
     std::vector<std::vector<cv::DMatch>> knnMatches;
@@ -85,6 +67,7 @@ void labelMatchesWithHomography(const DescriptorSet& descA,
   }
 
   for (auto& m : matches) {
+    // Ensure indices are valid
     if (m.idxA < 0 || m.idxA >= static_cast<int>(descA.keypoints.size()) ||
         m.idxB < 0 || m.idxB >= static_cast<int>(descB.keypoints.size())) {
       m.isCorrect = false;
@@ -96,11 +79,13 @@ void labelMatchesWithHomography(const DescriptorSet& descA,
 
     cv::Point2f projected = projectPoint(kpA.pt, H_AtoB);
 
+    // If projection was invalid, mark as incorrect
     if (!std::isfinite(projected.x) || !std::isfinite(projected.y)) {
       m.isCorrect = false;
       continue;
     }
 
+    // Compute reprojection error
     float dx = projected.x - kpB.pt.x;
     float dy = projected.y - kpB.pt.y;
     float error = std::sqrt(dx * dx + dy * dy);

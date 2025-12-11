@@ -49,6 +49,7 @@ namespace cv {
     realDescriptors.clear();
     binaryDescriptors.clear();
 
+    // Pre-compute scale factors used to resample keypoints.
     computeScaleFactors(nScales, scale_min, scale_max, scaleFactors);
   }
 
@@ -73,7 +74,7 @@ namespace cv {
       CV_Error(Error::StsBadArg, "Input image is empty.");
     }
 
-    // detect keypoints if not provided
+    // Detect keypoints if not provided
     if (!useProvidedKeypoints || keypoints.empty()) {
       detector->detect(image, keypoints, mask);
     }
@@ -83,7 +84,7 @@ namespace cv {
       CV_Error(Error::StsBadArg, "No keypoints detected.");
     }
 
-    // compute descriptors
+    // Compute both real and binary ASV descriptors
     Mat real, binary;
     compute(image, keypoints, real, binary);
 
@@ -109,7 +110,7 @@ namespace cv {
       CV_Error(Error::StsBadArg, msg.c_str());
     }
 
-    // extract an array of descriptors at multiple scales per keypoint
+    // Extract an array of descriptors at multiple scales per keypoint
     std::vector<std::vector<Mat>> multiScaleDescriptors;
     extractMultiScaleDescriptors(image, keypoints, multiScaleDescriptors);
 
@@ -120,17 +121,20 @@ namespace cv {
       CV_Error(Error::StsBadArg, "No valid keypoints after multi-scale extraction.");
     }
 
-    // first stage ASV (1M): multi-thresholding + accumulated stability voting
+    // First stage ASV (1M): multi-thresholding + accumulated stability voting
     computeRealASV(multiScaleDescriptors);
 
+    // Pack realDescriptors into a single N x descriptorSize matrix
     if (!realDescriptors.empty()) {
       Mat realMat = Mat::zeros(N, descriptorSize, CV_32F);
       CV_Assert(static_cast<int>(realDescriptors.size()) == N);
       for (int i = 0; i < N; ++i) {
         const Mat& desc = realDescriptors[i];
         if (desc.empty()) continue;
+        // Each real descriptor is expected to be nThreshold1 x descriptorSize.
         CV_Assert(desc.rows == nThreshold1 && desc.cols == descriptorSize);
         CV_Assert(desc.type() == CV_32F);
+        // Only the first row is used as the final real ASV descriptor
         desc.row(0).copyTo(realMat.row(i));
       }
       realMat.copyTo(_descriptor);
@@ -149,6 +153,7 @@ namespace cv {
         for (int i = 0; i < N; ++i) {
           const Mat& desc = binaryDescriptors[i];
           if (desc.empty()) continue;
+          // Each binary descriptor is a single row vector
           CV_Assert(desc.rows == 1 && desc.cols == binaryDescriptorSize);
           CV_Assert(desc.type() == CV_8U);
           desc.row(0).copyTo(binMat.row(i));
@@ -170,6 +175,7 @@ namespace cv {
 
     if (nKeypoints == 0) return;
 
+    // For each sampled scale, compute descriptors for all keypoints
     for (int scaleIdx = 0; scaleIdx < nScales; ++scaleIdx) {
       // 1) Build scaled keypoints for this scale
       std::vector<KeyPoint> scaledKeypoints;
@@ -187,6 +193,7 @@ namespace cv {
       Mat descs;
       detector->compute(image, scaledKeypoints, descs);
 
+      // If descriptors are invalid at this scale, mark all entries as empty
       if (descs.empty() || descs.rows != nKeypoints) {
         for (int i = 0; i < nKeypoints; ++i) {
           multiScaleDescriptors[i][scaleIdx].release();
@@ -311,11 +318,14 @@ namespace cv {
     // Precompute thresholds for each 2nd-stage slot
     std::vector<float> thresholds(nThreshold2);
     for (int k = 0; k < nThreshold2; ++k) {
-      thresholds[k] = static_cast<float>(std::floor(nThreshold1 * nPairs / (nThreshold2 + 1) * (k + 1)));
+      // Thresholds are proportional to nThreshold1 * nPairs and spaced evenly
+      thresholds[k] = static_cast<float>(
+        std::floor(nThreshold1 * nPairs / (nThreshold2 + 1) * (k + 1)));
     }
 
     binaryDescriptors.resize(N);
 
+    // Convert each real ASV descriptor into its binary representation
     for (size_t i = 0; i < N; ++i) {
       const Mat& real = realDescriptors[i];
       if (real.empty()) {
@@ -330,6 +340,7 @@ namespace cv {
         const float thr = thresholds[k];
         const int offset = k * descriptorSize;
 
+        // Threshold the first row of the real descriptor dimension-wise
         for (int j = 0; j < descriptorSize; ++j) {
           const float v = real.at<float>(0, j);
           if (v >= thr) {

@@ -7,6 +7,7 @@
 
 namespace asv {
   namespace util {
+
     /**
      * @brief Compute evenly spaced scale factors between [scale_min, scale_max].
      *

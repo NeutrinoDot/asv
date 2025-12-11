@@ -18,7 +18,7 @@ cv::Mat DatasetLoader::loadHographyFormTxt(const std::string& path) const {
     throw std::runtime_error("Failed to open homography file: " + path);
   }
 
-  double h[9]{};
+  double h[9]{};  // temporary buffer
   for (int i = 0; i < 9; ++i) {
     if (!(in >> h[i])) {
       throw std::runtime_error("Invalid homography format in: " + path);
@@ -39,6 +39,7 @@ std::vector<ImagePair> DatasetLoader::loadAll() const {
   pairs.reserve(specs_.size());
 
   for (const auto& spec : specs_) {
+    // Load images in grayscale
     cv::Mat imgA = cv::imread(spec.pathImageA, cv::IMREAD_GRAYSCALE);
     cv::Mat imgB = cv::imread(spec.pathImageB, cv::IMREAD_GRAYSCALE);
     if (imgA.empty()) {

@@ -8,7 +8,7 @@
 #include "features/descriptors.hpp"
 
 /**
- * Configure for matching step.
+ * @brief Configuration parameters for descriptor matching.
  */
 struct MatchingConfig {
   bool useRatioTest = true;
@@ -17,7 +17,7 @@ struct MatchingConfig {
 };
 
 /**
- * One match + correctness label.
+ * @brief One match + correctness label.
  */
 struct MatchWithLabel {
   int   idxA = -1; // index into descA.keypoints
@@ -27,14 +27,25 @@ struct MatchWithLabel {
 };
 
 /**
- * Match descriptors between two sets.
+ * @brief Match descriptors between two descriptor sets using BFMatcher.
+ *
+ * If useRatioTest=true, perform 2-NN matching with Lowe's ratio rule.
+ * Otherwise, performs simple 1-NN matching.
+ *
+ * @param descA First descriptor set.
+ * @param descB Second descriptor set.
+ * @param config Matching configuration used by the matcher.
+ * @return matches that have been labeled using homography.
  */
 std::vector<MatchWithLabel> matchDescriptors(const DescriptorSet& descA,
                                              const DescriptorSet& descB,
                                              const MatchingConfig& config);
 
 /**
- * Label matches as correct or incorrect using a homography.
+ * @brief Use a ground-truth homography to label matches as correct or incorrect.
+ *
+ * A match is correct if projecting keypoint from image A to image B using
+ * H_AtoB lands within epsilonPx of the matched keypoint in B.
  */
 void labelMatchesWithHomography(const DescriptorSet& descA,
                                 const DescriptorSet& descB,

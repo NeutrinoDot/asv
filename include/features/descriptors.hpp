@@ -8,7 +8,9 @@
 #include <opencv2/xfeatures2d.hpp>
 
 /**
- * Descriptor types supported.
+ * @brief Enumeration of descriptor types supported by the feature extractor.
+ * ASV descriptors are represented as either real-valued (ASV_REAL) or binary
+ * (ASV_BINARY), depending on ASVConfig or ASV type.
  */
 enum class DescriptorType {
   SIFT,
@@ -21,7 +23,7 @@ enum class DescriptorType {
 };
 
 /**
- * Configuration for ASV descriptor.
+ * @brief Configuration parameters for the ASV descriptor extractor.
  */
 struct ASVConfig {
   int nScales = 5;
@@ -29,11 +31,11 @@ struct ASVConfig {
   float scale_max = 1.4f;
   int nThreshold1 = 1;
   int nThreshold2 = 1;
-  int detectorType = 0; // 0=SIFT, 1=ORB, 2=BRISK
+  int detectorType = 0; // 0=SIFT, 1=ORB, 2=BRISK, 3=SURF
 };
 
 /**
- * A set of descriptors and their corresponding keypoints.
+ * @brief Contains keypoints and the associated descriptor matrix.
  */
 struct DescriptorSet {
   std::vector<cv::KeyPoint> keypoints;
@@ -41,7 +43,7 @@ struct DescriptorSet {
 };
 
 /**
- * Interface for feature descriptors.
+ * @brief Abstract Interface for all feature descriptors used by the evaluation script.
  */
 class IDescriptor {
 public:
@@ -50,13 +52,15 @@ public:
 
   /**
    * @brief Detect keypoints and compute descriptors for an image.
-   * @param image The input image.
-   * @param out The output DescriptorSet containing keypoints and descriptors.
+   * @param image Input image.
+   * @param out Output DescriptorSet containing keypoints and descriptors.
    */
   virtual void detectAndCompute(const cv::Mat& image,
                                 DescriptorSet& out) = 0;
 };
 
-// Factory function to create descriptor for given type
+/**
+ * @brief Factory for constructing descriptor extractors by type.
+ */
 std::unique_ptr<IDescriptor> createDescriptor(DescriptorType type,
                                               const ASVConfig& asvConfig = ASVConfig{});

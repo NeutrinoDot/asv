@@ -5,23 +5,7 @@
 #include <numeric>
 #include <cmath>
 #include <limits>
-
-// Helper: project point using homography
-static cv::Point2f projectPoint(const cv::Point2f& pt, const cv::Mat& H) {
-  CV_Assert(H.rows == 3 && H.cols == 3 && H.type() == CV_64F);
-
-  const double* h = H.ptr<double>(0);
-  double X = h[0] * pt.x + h[1] * pt.y + h[2];
-  double Y = h[3] * pt.x + h[4] * pt.y + h[5];
-  double W = h[6] * pt.x + h[7] * pt.y + h[8];
-
-  if (std::abs(W) < 1e-9) {
-    return cv::Point2f(std::numeric_limits<float>::max(),
-                       std::numeric_limits<float>::max());
-  }
-
-  return cv::Point2f(static_cast<float>(X / W), static_cast<float>(Y / W));
-}
+#include <util/eval_utils.hpp>
 
 // Helper: compute ground truth correspondences
 static int computeGroundTruthCorrespondences(

@@ -29,17 +29,20 @@
 #include "eval/matching.hpp"
 #include "features/descriptors.hpp"
 
+// Precision-Recall curve values for one image pair.
 struct PRCurve {
   std::vector<float> recall;
   std::vector<float> precision;
 };
 
+// Metrics for a single evaluated image pair
 struct PairMetrics {
   std::string pairId;
   PRCurve pr;
   float averagePrecision = 0.0f; // AP for this pair
 };
 
+// Aggregated metrics across the entire dataset.
 struct GlobalMetrics {
   std::vector<PairMetrics> perPair;
   float mAP = 0.0f; // mean AP across all pairs
@@ -50,10 +53,11 @@ struct GlobalMetrics {
   int bytesPerDescriptor = 0; // Memory cost per descriptor
 };
 
-// Compute PR curve + AP for a single image pair with ground truth total.
-//
-// INPUT: pairId, matches, descA, descB, H_AtoB, epsilonPx
-// OUTPUT: PairMetrics with filled PRCurve and AP using true recall.
+/**
+ * @brief Compute PR curve + AP for a single image pair with ground truth total. 
+ * 
+ * @return PairMetrics with filled PRCurve and AP using true recall
+ */
 PairMetrics computePairMetrics(const std::string& pairId,
                                const std::vector<MatchWithLabel>& matches,
                                const DescriptorSet& descA,
@@ -61,8 +65,9 @@ PairMetrics computePairMetrics(const std::string& pairId,
                                const cv::Mat& H_AtoB,
                                float epsilonPx);
 
-// Compute mean AP across all pairs.
-//
-// INPUT: perPair (one PairMetrics per image pair).
-// OUTPUT: GlobalMetrics with mAP.
+/**
+ * @brief Compute mean AP across all pairs.
+ * 
+ * @return GlobalMetrics with mAP.
+ */
 GlobalMetrics computeGlobalMetrics(const std::vector<PairMetrics>& perPair);

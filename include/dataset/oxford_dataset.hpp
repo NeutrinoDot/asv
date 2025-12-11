@@ -5,8 +5,8 @@
 #include <vector>
 #include <opencv2/core.hpp>
 
-/** 
- * Specification of an image pair to load.
+/**
+ * @brief Metadata describing one image pair in the Oxford dataset.
  */
 struct ImagePairSpec {
   std::string id;
@@ -16,7 +16,7 @@ struct ImagePairSpec {
 };
 
 /**
- * In-memory representation of a loaded pair.
+ * @brief In-memory representation of a loaded pair.
  */
 struct ImagePair {
   std::string id;
@@ -25,8 +25,8 @@ struct ImagePair {
   cv::Mat H_AtoB;  // Homography from A to B
 };
 
-/** 
- * Loader for Oxford dataset image pairs. 
+/**
+ * @brief Loader for Oxford dataset image pairs.
  */
 class DatasetLoader {
 public:
@@ -37,6 +37,7 @@ public:
 
   /**
    * @brief Load all image pairs specified in the dataset.
+   *
    * @return A vector of loaded ImagePair objects.
    */
   std::vector<ImagePair> loadAll() const;
@@ -44,8 +45,11 @@ public:
 private:
   std::vector<ImagePairSpec> specs_;
 
-  /** 
-   * Helper to load a single image pair given its specification. 
+  /**
+   * @brief Helper to load a single image pair given its specification.
+   *
+   * @param path Path to the text file.
+   * @return cv::Mat of size 3x3 (CV_64F).
    */
   cv::Mat loadHographyFormTxt(const std::string& path) const;
 };

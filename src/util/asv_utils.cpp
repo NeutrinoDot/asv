@@ -48,33 +48,37 @@ namespace asv {
 
       if (dim == 0 || cols == 0) return;
 
+      // Outpue accumulator (dim * 1)
       outVec = cv::Mat::zeros(dim, 1, CV_32F);
 
+      // Determine segment size when slicing sorted indices
       int segment = dim / num_q;
       if (segment <= 0) segment = 1;
 
-      // buffer for (value, index) pairs per column
+      // Buffer for (value, index) pairs per column
       std::vector<std::pair<float, int>> buf(dim);
 
       for (int c = 0; c < cols; ++c) {
-        // Fill and sort by value ascending
         for (int r = 0; r < dim; ++r) {
           buf[r].first = inMat.at<float>(r, c);
           buf[r].second = r;
         }
+        // Sort ascending -> lower difference = higher stability
         std::sort(buf.begin(), buf.end(),
                   [](const std::pair<float, int>& a, const std::pair<float, int>& b) {
                     return a.first < b.first;
                   });
 
-        // Assign quantized votes: smallest differences get highest vote
+        // Assign quantization levels from smallest to largest
         for (int lvl = 0; lvl < num_q; ++lvl) {
           int aa = lvl * segment;
           int bb = (lvl + 1) * segment - 1;
 
+          // Clamp bounds to valid ranges
           if (aa >= dim) break;
           if (bb >= dim) bb = dim - 1;
 
+          // Apply vote to each index in this quantization segment
           float voteVal = static_cast<float>(num_q - lvl - 1);
           for (int idx = aa; idx <= bb; ++idx) {
             int r = buf[idx].second;

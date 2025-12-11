@@ -8,7 +8,7 @@
 #include <opencv2/core.hpp>
 
 #include "dataset/oxford_dataset.hpp"
-#include "dataset/dataset_utils.hpp"
+#include "util/dataset_utils.hpp"
 #include "features/descriptors.hpp"
 #include "eval/matching.hpp"
 #include "metrics/metrics.hpp"
